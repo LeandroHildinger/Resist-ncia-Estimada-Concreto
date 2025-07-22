@@ -277,7 +277,12 @@
                         },
                         plugins: {
                             legend: { position: 'top' },
-                            tooltip: { mode: 'index', intersect: false, callbacks: { label: (c) => `${c.dataset.label || ''}: ${c.parsed.y} MPa` } },
+                            tooltip: {
+                                // CORREÇÃO: Alterado de 'index' para 'x' para buscar dados pelo dia correto.
+                                mode: 'x', 
+                                intersect: false, 
+                                callbacks: { label: (c) => `${c.dataset.label || ''}: ${c.parsed.y} MPa` } 
+                            },
                             annotation: {
                                 annotations: {
                                     fckLine: { type: 'line', yMin: 0, yMax: 0, borderColor: 'rgba(245, 158, 11, 1)', borderWidth: 2, borderDash: [10, 5], label: { content: '', enabled: true, position: 'end', backgroundColor: 'rgba(245, 158, 11, 0.8)', color: 'white', font: { size: 10 } } },
