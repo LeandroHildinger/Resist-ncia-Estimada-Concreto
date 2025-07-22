@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curva de Ganho de Resistência do Concreto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Análise Preditiva de Resistência do Concreto</h1>
+            <p class="text-sm sm:text-base text-gray-600 mt-2">Estime a resistência característica futura com base nos resultados de ensaio.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Coluna do Gráfico -->
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+                <canvas id="resistanceChart"></canvas>
+            </div>
+
+            <!-- Coluna de Controles e Dados -->
+            <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col space-y-6">
+                
+                <!-- Parâmetros do Projeto -->
+                <div>
+                    <h2 class="text-lg font-semibold border-b pb-2 mb-4">Parâmetros do Projeto</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="fckInput" class="block text-sm font-medium text-gray-700">Resistência Característica (fck)</label>
+                            <div class="mt-1 flex items-center">
+                                <input type="number" id="fckInput" value="25" class="w-full bg-gray-50 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <span class="ml-2 text-gray-500">MPa</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dados de Ensaio -->
+                <div class="flex-grow">
+                    <h2 class="text-lg font-semibold border-b pb-2 mb-4">Resultados dos Ensaios (CPs)</h2>
+                    <div class="overflow-x-auto max-h-48">
+                        <table class="min-w-full">
+                            <thead>
+                                <tr>
+                                    <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Idade (dias)</th>
+                                    <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resistência (MPa)</th>
+                                    <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dataTableBody" class="bg-white">
+                                <!-- Linhas de dados serão inseridas aqui pelo JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <button id="addPointBtn" class="mt-4 w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out text-sm font-medium">
+                        Adicionar Ponto de Ensaio
+                    </button>
+                </div>
+
+                 <!-- Análise Preditiva -->
+                <div class="mt-6">
+                    <h2 class="text-lg font-semibold border-b pb-2 mb-4">Análise Preditiva</h2>
+                    <div class="space-y-4 p-4 bg-indigo-50 rounded-lg">
+                        <div>
+                            <label class="block text-sm font-medium text-indigo-800">Coeficiente 's' Médio (Estimado)</label>
+                            <p id="estimatedS" class="mt-1 text-lg font-bold text-indigo-600">--</p>
+                        </div>
+                        <div>
+                            <label for="predictionDays" class="block text-sm font-medium text-indigo-800">Calcular resistência para:</label>
+                            <div class="mt-1 flex items-center">
+                                <input type="number" id="predictionDays" placeholder="Ex: 28" class="w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <span class="ml-2 text-gray-500">dias</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-indigo-800">Resistência Característica Estimada</label>
+                            <div id="predictedResistance" class="mt-1 text-xl font-bold text-red-700">-- MPa</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <footer class="text-center text-xs text-gray-500 py-6 mt-4">
+            Desenvolvido por Leandro Hildinger Cavalcanti
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Referências aos elementos do DOM
+            const ctx = document.getElementById('resistanceChart').getContext('2d');
+            const fckInput = document.getElementById('fckInput');
+            const dataTableBody = document.getElementById('dataTableBody');
+            const addPointBtn = document.getElementById('addPointBtn');
+            const predictionDaysInput = document.getElementById('predictionDays');
+            const predictedResistanceDisplay = document.getElementById('predictedResistance');
+            const estimatedSDisplay = document.getElementById('estimatedS');
+
+            let realData = [
+                { days: 7, mpa: 17.7 },
+                { days: 11, mpa: 23.1 }
+            ];
+            let resistanceChart;
+            let estimatedS = null;
+            let safetyOffset = 0; // Deslocamento para a curva de segurança
+
+            // Função para calcular a curva teórica (NBR 6118)
+            const calculateTheoreticalCurve = (fcm, s, maxDays = 90) => {
+                const data = [];
+                for (let t = 1; t <= maxDays; t++) {
+                    if (t > 0) {
+                        const resistance = fcm * Math.exp(s * (1 - Math.sqrt(28 / t)));
+                        data.push({ x: t, y: resistance });
+                    }
+                }
+                return data;
+            };
+
+            // Função para encontrar o melhor coeficiente 's' por regressão (mínimos quadrados)
+            const findBestFitS = (dataPoints, fcm) => {
+                if (dataPoints.length < 1) return null;
+                let bestS = null;
+                let minError = Infinity;
+                // Aumentando o range para garantir a convergência
+                for (let s = 0.01; s <= 0.50; s += 0.001) {
+                    let currentError = 0;
+                    dataPoints.forEach(point => {
+                        if (point.days > 0) {
+                            const theoreticalMpa = fcm * Math.exp(s * (1 - Math.sqrt(28 / point.days)));
+                            currentError += Math.pow(point.mpa - theoreticalMpa, 2);
+                        }
+                    });
+                    if (currentError < minError) {
+                        minError = currentError;
+                        bestS = s;
+                    }
+                }
+                return bestS;
+            };
+
+            // Função para renderizar a tabela
+            const renderTable = () => {
+                dataTableBody.innerHTML = '';
+                realData.forEach((point, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-2 py-1 whitespace-nowrap"><input type="number" value="${point.days}" data-index="${index}" data-prop="days" class="w-full bg-gray-50 border border-gray-300 rounded-md py-1 px-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"></td>
+                        <td class="px-2 py-1 whitespace-nowrap"><input type="number" step="0.1" value="${point.mpa}" data-index="${index}" data-prop="mpa" class="w-full bg-gray-50 border border-gray-300 rounded-md py-1 px-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"></td>
+                        <td class="px-2 py-1 whitespace-nowrap text-right text-sm font-medium"><button data-index="${index}" class="remove-btn text-red-600 hover:text-red-900">Remover</button></td>
+                    `;
+                    dataTableBody.appendChild(row);
+                });
+                document.querySelectorAll('#dataTableBody input').forEach(input => input.addEventListener('change', handleTableInputChange));
+                document.querySelectorAll('.remove-btn').forEach(btn => btn.addEventListener('click', handleRemovePoint));
+            };
+
+            // Função para calcular a predição
+            const updatePrediction = () => {
+                const days = parseFloat(predictionDaysInput.value);
+                const fck = parseFloat(fckInput.value) || 0;
+                const fcm = fck + 8;
+
+                if (!isNaN(days) && days > 0 && estimatedS) {
+                    const meanResistance = fcm * Math.exp(estimatedS * (1 - Math.sqrt(28 / days)));
+                    const characteristicResistance = Math.max(0, meanResistance - safetyOffset);
+                    predictedResistanceDisplay.innerHTML = `${characteristicResistance.toFixed(2)} MPa`;
+                } else {
+                    predictedResistanceDisplay.innerHTML = '-- MPa';
+                }
+            };
+
+            // Função principal para atualizar o gráfico e os cálculos
+            const updateApp = () => {
+                const fck = parseFloat(fckInput.value) || 0;
+                const fcm = fck + 8;
+
+                // 1. Encontra o 's' médio
+                estimatedS = findBestFitS(realData, fcm);
+                
+                // 2. Calcula o deslocamento (offset) para a curva característica de segurança
+                safetyOffset = 0;
+                if (estimatedS) {
+                    let maxDifference = 0;
+                    realData.forEach(point => {
+                        if (point.days > 0) {
+                            const meanPrediction = fcm * Math.exp(estimatedS * (1 - Math.sqrt(28 / point.days)));
+                            const difference = meanPrediction - point.mpa;
+                            if (difference > maxDifference) {
+                                maxDifference = difference;
+                            }
+                        }
+                    });
+                    safetyOffset = maxDifference;
+                }
+
+                // 3. Atualiza os datasets do gráfico
+                const characteristicCurveDataset = resistanceChart.data.datasets[3];
+
+                if (estimatedS) {
+                    estimatedSDisplay.textContent = estimatedS.toFixed(3);
+                    const meanCurveData = calculateTheoreticalCurve(fcm, estimatedS);
+                    const characteristicCurveData = meanCurveData.map(point => ({
+                        x: point.x,
+                        y: Math.max(0, point.y - safetyOffset)
+                    }));
+
+                    characteristicCurveDataset.data = characteristicCurveData.map(p => ({x: p.x, y: p.y.toFixed(2)}));
+                    characteristicCurveDataset.label = `Curva Característica Estimada (s=${estimatedS.toFixed(3)})`;
+                    characteristicCurveDataset.hidden = false;
+
+                } else {
+                    estimatedSDisplay.textContent = '--';
+                    characteristicCurveDataset.hidden = true;
+                }
+                
+                resistanceChart.data.datasets[1].data = calculateTheoreticalCurve(fcm, 0.25).map(p => ({x: p.x, y: p.y.toFixed(2)}));
+                resistanceChart.data.datasets[2].data = calculateTheoreticalCurve(fcm, 0.20).map(p => ({x: p.x, y: p.y.toFixed(2)}));
+                resistanceChart.data.datasets[0].data = realData.map(p => ({ x: p.days, y: p.mpa }));
+
+                resistanceChart.options.plugins.annotation.annotations.fckLine.value = fck;
+                resistanceChart.options.plugins.annotation.annotations.fckLine.label.content = `fck = ${fck} MPa`;
+                resistanceChart.options.plugins.annotation.annotations.fcmLine.value = fcm;
+                resistanceChart.options.plugins.annotation.annotations.fcmLine.label.content = `fcm (28d) = ${fcm} MPa`;
+                
+                resistanceChart.update();
+                updatePrediction();
+            };
+
+            // Manipuladores de eventos
+            const handleTableInputChange = (e) => {
+                realData[e.target.dataset.index][e.target.dataset.prop] = parseFloat(e.target.value);
+                updateApp();
+            };
+            const handleRemovePoint = (e) => {
+                realData.splice(e.target.dataset.index, 1);
+                renderTable();
+                updateApp();
+            };
+            addPointBtn.addEventListener('click', () => {
+                realData.push({ days: 0, mpa: 0 });
+                renderTable();
+                updateApp();
+            });
+            fckInput.addEventListener('change', updateApp);
+            predictionDaysInput.addEventListener('input', updatePrediction);
+
+            // Inicialização do gráfico
+            const initializeChart = () => {
+                resistanceChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        datasets: [
+                            { type: 'scatter', label: 'Resultados Reais (Ensaio)', data: [], backgroundColor: 'rgba(239, 68, 68, 1)', borderColor: 'rgba(220, 38, 38, 1)', pointRadius: 6, pointHoverRadius: 8, z: 10 },
+                            { label: 'Teórica (CP II, s=0.25)', data: [], borderColor: 'rgba(59, 130, 246, 0.5)', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: false, borderDash: [5, 5] },
+                            { label: 'Teórica (CP V-ARI, s=0.20)', data: [], borderColor: 'rgba(16, 185, 129, 0.5)', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: false, borderDash: [5, 5] },
+                            { label: 'Curva Característica Estimada', data: [], borderColor: 'rgba(220, 38, 38, 1)', borderWidth: 3, pointRadius: 0, tension: 0.1, fill: false, hidden: true }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        scales: {
+                            x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Idade do Concreto (dias)', font: { size: 14 } } },
+                            y: { title: { display: true, text: 'Resistência à Compressão (MPa)', font: { size: 14 } }, beginAtZero: true }
+                        },
+                        plugins: {
+                            legend: { position: 'top' },
+                            tooltip: { mode: 'index', intersect: false, callbacks: { label: (c) => `${c.dataset.label || ''}: ${c.parsed.y} MPa` } },
+                            annotation: {
+                                annotations: {
+                                    fckLine: { type: 'line', yMin: 0, yMax: 0, borderColor: 'rgba(245, 158, 11, 1)', borderWidth: 2, borderDash: [10, 5], label: { content: '', enabled: true, position: 'end', backgroundColor: 'rgba(245, 158, 11, 0.8)', color: 'white', font: { size: 10 } } },
+                                    fcmLine: { type: 'line', yMin: 0, yMax: 0, borderColor: 'rgba(139, 92, 246, 1)', borderWidth: 2, borderDash: [10, 5], label: { content: '', enabled: true, position: 'end', backgroundColor: 'rgba(139, 92, 246, 0.8)', color: 'white', font: { size: 10 } } }
+                                }
+                            }
+                        }
+                    }
+                });
+                renderTable();
+                updateApp();
+            };
+
+            initializeChart();
+        });
+    </script>
+
+</body>
+</html>
