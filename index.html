@@ -20,19 +20,19 @@
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <header class="text-center mb-8">
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Análise Preditiva de Resistência do Concreto</h1>
+            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Análise Preditiva de Resistência do Concreto</h1>
             <p class="text-sm sm:text-base text-gray-600 mt-2">Estime a resistência característica futura com base nos resultados de ensaio.</p>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             <!-- Coluna do Gráfico -->
-            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+            <div class="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-lg">
                 <canvas id="resistanceChart"></canvas>
             </div>
 
             <!-- Coluna de Controles e Dados -->
-            <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col space-y-6">
+            <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg flex flex-col space-y-6">
                 
                 <!-- Parâmetros do Projeto -->
                 <div>
@@ -55,9 +55,9 @@
                         <table class="min-w-full">
                             <thead>
                                 <tr>
-                                    <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Idade (dias)</th>
-                                    <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resistência (MPa)</th>
-                                    <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ação</th>
+                                    <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">Idade (dias)</th>
+                                    <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">Resistência (MPa)</th>
+                                    <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase">Ação</th>
                                 </tr>
                             </thead>
                             <tbody id="dataTableBody" class="bg-white">
@@ -272,13 +272,22 @@
                     options: {
                         responsive: true, maintainAspectRatio: false,
                         scales: {
-                            x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Idade do Concreto (dias)', font: { size: 14 } } },
-                            y: { title: { display: true, text: 'Resistência à Compressão (MPa)', font: { size: 14 } }, beginAtZero: true }
+                            x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Idade do Concreto (dias)', font: { size: 12 } } },
+                            y: { title: { display: true, text: 'Resistência à Compressão (MPa)', font: { size: 12 } }, beginAtZero: true }
                         },
                         plugins: {
-                            legend: { position: 'top' },
+                            legend: { 
+                                position: 'bottom',
+                                align: 'start',
+                                labels: {
+                                    boxWidth: 20,
+                                    padding: 20,
+                                    font: {
+                                        size: 10
+                                    }
+                                }
+                            },
                             tooltip: {
-                                // CORREÇÃO: Alterado de 'index' para 'x' para buscar dados pelo dia correto.
                                 mode: 'x', 
                                 intersect: false, 
                                 callbacks: { label: (c) => `${c.dataset.label || ''}: ${c.parsed.y} MPa` } 
