@@ -27,7 +27,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             <!-- Coluna do Gráfico -->
-            <div class="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+            <div class="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-lg h-96 lg:h-auto">
                 <canvas id="resistanceChart"></canvas>
             </div>
 
@@ -119,12 +119,15 @@
 
             // Função para calcular a curva teórica (NBR 6118)
             const calculateTheoreticalCurve = (fcm, s, maxDays = 90) => {
-                const data = [];
+                const data = [{ x: 0, y: 0 }];
+                // CORREÇÃO: Adicionados pontos fracionados para suavizar a curva inicial.
+                for (let t = 0.1; t < 1; t += 0.1) {
+                    const resistance = fcm * Math.exp(s * (1 - Math.sqrt(28 / t)));
+                    data.push({ x: t, y: resistance });
+                }
                 for (let t = 1; t <= maxDays; t++) {
-                    if (t > 0) {
-                        const resistance = fcm * Math.exp(s * (1 - Math.sqrt(28 / t)));
-                        data.push({ x: t, y: resistance });
-                    }
+                    const resistance = fcm * Math.exp(s * (1 - Math.sqrt(28 / t)));
+                    data.push({ x: t, y: resistance });
                 }
                 return data;
             };
@@ -290,7 +293,18 @@
                             tooltip: {
                                 mode: 'x', 
                                 intersect: false, 
-                                callbacks: { label: (c) => `${c.dataset.label || ''}: ${c.parsed.y} MPa` } 
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += parseFloat(context.parsed.y).toFixed(2) + ' MPa';
+                                        }
+                                        return label;
+                                    }
+                                }
                             },
                             annotation: {
                                 annotations: {
