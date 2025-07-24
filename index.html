@@ -7,6 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js"></script>
+    <!-- KaTeX para renderização de equações LaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js"></script>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -14,6 +18,7 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+        .katex { font-size: 1.1em; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -81,7 +86,7 @@
                     </button>
                 </div>
 
-                <div class="mt-6">
+                <div class="mt-2">
                     <h2 class="text-lg font-semibold border-b pb-2 mb-4">Análise Preditiva</h2>
                     <div id="guidanceBox" class="p-3 mb-4 text-sm rounded-lg"></div>
                     <div class="space-y-4 p-4 bg-indigo-50 rounded-lg">
@@ -100,6 +105,22 @@
                 </div>
             </div>
         </div>
+
+        <!-- Seção de Equações -->
+        <div id="equationsSection" class="mt-8 bg-white p-4 sm:p-6 rounded-xl shadow-lg hidden">
+            <h2 class="text-lg font-semibold border-b pb-2 mb-4">Equações Aplicadas</h2>
+            <div class="space-y-4 text-sm">
+                <div>
+                    <h3 class="font-semibold text-gray-700">Curva de Referência (Teórica)</h3>
+                    <div id="theoreticalEquation" class="mt-2 p-2 bg-gray-50 rounded"></div>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-700">Curva Característica (Estimada)</h3>
+                    <div id="characteristicEquation" class="mt-2 p-2 bg-gray-50 rounded"></div>
+                </div>
+            </div>
+        </div>
+
         <footer class="text-center text-xs text-gray-500 py-6 mt-4">
             Desenvolvido por Leandro Hildinger Cavalcanti
         </footer>
@@ -116,6 +137,9 @@
             const predictionDaysInput = document.getElementById('predictionDays');
             const predictedResistanceDisplay = document.getElementById('predictedResistance');
             const guidanceBox = document.getElementById('guidanceBox');
+            const equationsSection = document.getElementById('equationsSection');
+            const theoreticalEquationDiv = document.getElementById('theoreticalEquation');
+            const characteristicEquationDiv = document.getElementById('characteristicEquation');
 
             let realData = [];
             let resistanceChart;
@@ -127,7 +151,6 @@
             };
 
             const generateCurveData = (fcm, s, maxDays = 90) => {
-                // CORREÇÃO: Removidos pontos fracionados. A suavização agora é feita apenas pelo 'tension' e 'cubicInterpolationMode' do gráfico.
                 const data = [{ x: 0, y: 0 }];
                 for (let t = 1; t <= maxDays; t++) {
                     data.push({ x: t, y: calculateResistance(fcm, s, t) });
@@ -139,7 +162,7 @@
                 if (dataPoints.length < 2) return null;
                 let bestS = null;
                 let minError = Infinity;
-                for (let s = 0.01; s <= 0.60; s += 0.001) { // Increased range for s
+                for (let s = 0.01; s <= 0.60; s += 0.001) {
                     let currentError = 0;
                     dataPoints.forEach(point => {
                         currentError += Math.pow(point.mpa - calculateResistance(fcm, s, point.days), 2);
@@ -219,6 +242,21 @@
                 guidanceBox.className = `p-3 mb-4 text-sm rounded-lg ${bgColor} ${textColor}`;
                 guidanceBox.innerHTML = message;
             };
+            
+            const updateEquations = (params) => {
+                if(!params.s_final || !params.fcm_final) {
+                    equationsSection.classList.add('hidden');
+                    return;
+                }
+                
+                equationsSection.classList.remove('hidden');
+
+                const th_eq = `f_{cm}(t) = ${params.fcm_base.toFixed(2)} \\cdot e^{\\left[${params.s_normative.toFixed(3)} \\cdot \\left(1 - \\sqrt{\\frac{28}{t}}\\right)\\right]}`;
+                const ch_eq = `f_{ck,est}(t) = ${params.fcm_final.toFixed(2)} \\cdot e^{\\left[${params.s_final.toFixed(3)} \\cdot \\left(1 - \\sqrt{\\frac{28}{t}}\\right)\\right]} - ${params.safetyOffset.toFixed(2)}`;
+
+                katex.render(th_eq, theoreticalEquationDiv, { throwOnError: false });
+                katex.render(ch_eq, characteristicEquationDiv, { throwOnError: false });
+            };
 
             const updateApp = () => {
                 const fck = parseFloat(fckInput.value) || 0;
@@ -264,12 +302,15 @@
                 resistanceChart.data.datasets[1].data = characteristicCurve.map(p => ({x: p.x, y: p.y.toFixed(2)}));
                 resistanceChart.data.datasets[2].data = realData.map(p => ({ x: p.days, y: p.mpa }));
                 
-                resistanceChart.options.plugins.annotation.annotations.fckLine.value = fck;
+                // CORREÇÃO: Atualizando yMin e yMax para posicionar a linha do fck
+                resistanceChart.options.plugins.annotation.annotations.fckLine.yMin = fck;
+                resistanceChart.options.plugins.annotation.annotations.fckLine.yMax = fck;
                 resistanceChart.options.plugins.annotation.annotations.fckLine.label.content = `fck = ${fck} MPa`;
                 
                 resistanceChart.update();
                 updatePrediction();
                 updateGuidance({ pointsCount: realData.length, mode: analysisMode, s: s_final });
+                updateEquations({fcm_base, s_normative, fcm_final, s_final, safetyOffset});
             };
 
             const handleTableInputChange = (e) => {
