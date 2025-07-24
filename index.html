@@ -51,6 +51,13 @@
                                 <option value="0.25">CP I (Comum)</option>
                             </select>
                         </div>
+                         <div>
+                            <label for="analysisMode" class="block text-sm font-medium text-gray-700">Modo de Análise</label>
+                            <select id="analysisMode" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <option value="adjusted">Regressão Ajustada (Padrão)</option>
+                                <option value="normative">Forçar Curva Normativa</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -103,6 +110,7 @@
             const ctx = document.getElementById('resistanceChart').getContext('2d');
             const fckInput = document.getElementById('fckInput');
             const cementTypeSelect = document.getElementById('cementType');
+            const analysisModeSelect = document.getElementById('analysisMode');
             const dataTableBody = document.getElementById('dataTableBody');
             const addPointBtn = document.getElementById('addPointBtn');
             const predictionDaysInput = document.getElementById('predictionDays');
@@ -111,6 +119,7 @@
 
             let realData = [];
             let resistanceChart;
+            let lastAnalysis = {};
 
             const calculateResistance = (fcm, s, t) => {
                 if (t <= 0) return 0;
@@ -118,10 +127,8 @@
             };
 
             const generateCurveData = (fcm, s, maxDays = 90) => {
+                // CORREÇÃO: Removidos pontos fracionados. A suavização agora é feita apenas pelo 'tension' e 'cubicInterpolationMode' do gráfico.
                 const data = [{ x: 0, y: 0 }];
-                for (let t = 0.2; t < 1; t += 0.2) {
-                    data.push({ x: t, y: calculateResistance(fcm, s, t) });
-                }
                 for (let t = 1; t <= maxDays; t++) {
                     data.push({ x: t, y: calculateResistance(fcm, s, t) });
                 }
@@ -129,10 +136,10 @@
             };
             
             const findBestFitS = (dataPoints, fcm) => {
-                if (dataPoints.length <= 1) return null;
+                if (dataPoints.length < 2) return null;
                 let bestS = null;
                 let minError = Infinity;
-                for (let s = 0.01; s <= 0.50; s += 0.001) {
+                for (let s = 0.01; s <= 0.60; s += 0.001) { // Increased range for s
                     let currentError = 0;
                     dataPoints.forEach(point => {
                         currentError += Math.pow(point.mpa - calculateResistance(fcm, s, point.days), 2);
@@ -143,6 +150,20 @@
                     }
                 }
                 return bestS;
+            };
+            
+            const findBestFitFcm = (dataPoints, s) => {
+                if (dataPoints.length < 1) return null;
+                let numerator = 0;
+                let denominator = 0;
+                dataPoints.forEach(point => {
+                    if(point.days > 0) {
+                        const k = Math.exp(s * (1 - Math.sqrt(28 / point.days)));
+                        numerator += point.mpa * k;
+                        denominator += k * k;
+                    }
+                });
+                return denominator > 0 ? numerator / denominator : null;
             };
 
             const renderTable = () => {
@@ -160,11 +181,12 @@
                 document.querySelectorAll('.remove-btn').forEach(btn => btn.addEventListener('click', handleRemovePoint));
             };
 
-            const updatePrediction = (fcm, s, safetyOffset) => {
+            const updatePrediction = () => {
+                const { fcm, s, offset } = lastAnalysis;
                 const days = parseFloat(predictionDaysInput.value);
-                if (!isNaN(days) && days > 0 && s) {
+                if (!isNaN(days) && days > 0 && s && fcm) {
                     const meanResistance = calculateResistance(fcm, s, days);
-                    const characteristicResistance = Math.max(0, meanResistance - safetyOffset);
+                    const characteristicResistance = Math.max(0, meanResistance - offset);
                     predictedResistanceDisplay.innerHTML = `${characteristicResistance.toFixed(2)} MPa`;
                 } else {
                     predictedResistanceDisplay.innerHTML = '-- MPa';
@@ -178,24 +200,20 @@
 
                 if (analysis.pointsCount === 0) {
                     message = 'Adicione pelo menos um resultado de ensaio para iniciar a análise.';
-                } else if (analysis.pointsCount === 1) {
-                    message = '<b>Diagnóstico Inicial:</b> A previsão é uma estimativa baseada no cimento selecionado. Adicione mais pontos para uma análise ajustada.';
+                } else if (analysis.mode === 'normative') {
+                    message = '<b>Análise Normativa:</b> A forma da curva segue o padrão NBR 6118. A altura da curva foi ajustada para melhor se aproximar dos seus dados.';
                     bgColor = 'bg-blue-100';
                     textColor = 'text-blue-800';
-                    
-                    const point = realData[0];
-                    const theoreticalResistance = calculateResistance(analysis.fcm_base, analysis.s_normative, point.days);
-                    const lowerBound = theoreticalResistance * 0.8; // 80% do esperado
-                    
-                    if (point.mpa < lowerBound) {
-                        message += `<br><br><b>Atenção:</b> A resistência aos ${point.days} dias está significativamente abaixo do esperado para este tipo de cimento. Verifique o traço ou as condições de cura.`;
+                } else { // adjusted mode
+                     if (analysis.pointsCount < 2) {
+                        message = '<b>Modo de Regressão:</b> Adicione pelo menos 2 pontos para que a tendência real seja calculada.';
                         bgColor = 'bg-yellow-100';
                         textColor = 'text-yellow-800';
+                    } else {
+                        message = `<b>Análise Ajustada (s=${analysis.s.toFixed(3)}):</b> A curva foi otimizada com base na tendência real dos seus dados.`;
+                        bgColor = 'bg-green-100';
+                        textColor = 'text-green-800';
                     }
-                } else {
-                    message = '<b>Análise Ajustada:</b> A curva foi otimizada com base nos seus dados de ensaio para maior precisão.';
-                    bgColor = 'bg-green-100';
-                    textColor = 'text-green-800';
                 }
                 
                 guidanceBox.className = `p-3 mb-4 text-sm rounded-lg ${bgColor} ${textColor}`;
@@ -206,23 +224,28 @@
                 const fck = parseFloat(fckInput.value) || 0;
                 const fcm_base = fck + 8;
                 const s_normative = parseFloat(cementTypeSelect.value);
+                const analysisMode = analysisModeSelect.value;
 
                 let s_final = s_normative;
                 let fcm_final = fcm_base;
                 let safetyOffset = 0;
 
-                if (realData.length === 1) {
-                    const point = realData[0];
-                    if (point.days > 0 && point.mpa > 0) {
-                        fcm_final = point.mpa / Math.exp(s_normative * (1 - Math.sqrt(28 / point.days)));
-                        safetyOffset = fcm_final - (fcm_final - 1.65 * 4); // Simula fck a partir do fcm estimado
-                        safetyOffset = Math.max(0, fcm_final - (point.mpa / (calculateResistance(fcm_base, s_normative, point.days) / fcm_base)));
+                if (realData.length > 0) {
+                    if (analysisMode === 'normative') {
+                        s_final = s_normative;
+                        fcm_final = findBestFitFcm(realData, s_final) || fcm_base;
+                    } else { // adjusted mode
+                        if (realData.length > 1) {
+                            s_final = findBestFitS(realData, fcm_base) || s_normative;
+                        } else {
+                            s_final = s_normative; // Fallback for 1 point in adjusted mode
+                        }
+                        fcm_final = fcm_base;
                     }
-                } else if (realData.length > 1) {
-                    s_final = findBestFitS(realData, fcm_base) || s_normative;
+
                     let maxDifference = 0;
                     realData.forEach(point => {
-                        const meanPrediction = calculateResistance(fcm_base, s_final, point.days);
+                        const meanPrediction = calculateResistance(fcm_final, s_final, point.days);
                         const difference = meanPrediction - point.mpa;
                         if (difference > maxDifference) {
                             maxDifference = difference;
@@ -231,6 +254,8 @@
                     safetyOffset = maxDifference;
                 }
                 
+                lastAnalysis = { fcm: fcm_final, s: s_final, offset: safetyOffset };
+
                 const theoreticalCurve = generateCurveData(fcm_base, s_normative);
                 const characteristicCurve = generateCurveData(fcm_final, s_final).map(p => ({ x: p.x, y: Math.max(0, p.y - safetyOffset) }));
                 
@@ -243,8 +268,8 @@
                 resistanceChart.options.plugins.annotation.annotations.fckLine.label.content = `fck = ${fck} MPa`;
                 
                 resistanceChart.update();
-                updatePrediction(fcm_final, s_final, safetyOffset);
-                updateGuidance({ pointsCount: realData.length, fcm_base, s_normative });
+                updatePrediction();
+                updateGuidance({ pointsCount: realData.length, mode: analysisMode, s: s_final });
             };
 
             const handleTableInputChange = (e) => {
@@ -257,40 +282,12 @@
                 updateApp();
             };
             addPointBtn.addEventListener('click', () => {
-                realData.push({ days: 3, mpa: 10 });
+                realData.push({ days: 7, mpa: 15 });
                 renderTable();
                 updateApp();
             });
-            [fckInput, cementTypeSelect].forEach(el => el.addEventListener('change', updateApp));
-            predictionDaysInput.addEventListener('input', () => {
-                const fck = parseFloat(fckInput.value) || 0;
-                const fcm_base = fck + 8;
-                const s_normative = parseFloat(cementTypeSelect.value);
-
-                let s_final = s_normative;
-                let fcm_final = fcm_base;
-                let safetyOffset = 0;
-
-                 if (realData.length === 1) {
-                    const point = realData[0];
-                    if (point.days > 0 && point.mpa > 0) {
-                        fcm_final = point.mpa / Math.exp(s_normative * (1 - Math.sqrt(28 / point.days)));
-                        safetyOffset = Math.max(0, fcm_final - (point.mpa / (calculateResistance(fcm_base, s_normative, point.days) / fcm_base)));
-                    }
-                } else if (realData.length > 1) {
-                    s_final = findBestFitS(realData, fcm_base) || s_normative;
-                    let maxDifference = 0;
-                    realData.forEach(point => {
-                        const meanPrediction = calculateResistance(fcm_base, s_final, point.days);
-                        const difference = meanPrediction - point.mpa;
-                        if (difference > maxDifference) {
-                            maxDifference = difference;
-                        }
-                    });
-                    safetyOffset = maxDifference;
-                }
-                updatePrediction(fcm_final, s_final, safetyOffset);
-            });
+            [fckInput, cementTypeSelect, analysisModeSelect].forEach(el => el.addEventListener('change', updateApp));
+            predictionDaysInput.addEventListener('input', updatePrediction);
 
             const initializeChart = () => {
                 resistanceChart = new Chart(ctx, {
