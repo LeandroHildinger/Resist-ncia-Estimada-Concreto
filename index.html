@@ -50,10 +50,10 @@
                         <div>
                             <label for="cementType" class="block text-sm font-medium text-gray-700">Tipo de Cimento (NBR 16697)</label>
                             <select id="cementType" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                                <option value="0.25">CP II (Composto)</option>
-                                <option value="0.20">CP V-ARI (Alta Resistência Inicial)</option>
-                                <option value="0.38">CP III / CP IV (Lento)</option>
                                 <option value="0.25">CP I (Comum)</option>
+                                <option value="0.25">CP II (Composto)</option>
+                                <option value="0.38">CP III / CP IV (Lento)</option>
+                                <option value="0.20">CP V-ARI (Alta Resistência Inicial)</option>
                             </select>
                         </div>
                          <div>
@@ -302,7 +302,6 @@
                 resistanceChart.data.datasets[1].data = characteristicCurve.map(p => ({x: p.x, y: p.y.toFixed(2)}));
                 resistanceChart.data.datasets[2].data = realData.map(p => ({ x: p.days, y: p.mpa }));
                 
-                // CORREÇÃO: Atualizando yMin e yMax para posicionar a linha do fck
                 resistanceChart.options.plugins.annotation.annotations.fckLine.yMin = fck;
                 resistanceChart.options.plugins.annotation.annotations.fckLine.yMax = fck;
                 resistanceChart.options.plugins.annotation.annotations.fckLine.label.content = `fck = ${fck} MPa`;
