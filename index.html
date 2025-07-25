@@ -19,6 +19,13 @@
             font-family: 'Inter', sans-serif;
         }
         .katex { font-size: 1.1em; }
+        /* Estilos para o Modal */
+        .modal-overlay {
+            transition: opacity 0.3s ease;
+        }
+        .modal-content {
+            transition: transform 0.3s ease;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -48,10 +55,17 @@
                             </div>
                         </div>
                         <div>
+                            <label for="sdInput" class="block text-sm font-medium text-gray-700">Desvio Padrão de Dosagem (sd)</label>
+                            <div class="mt-1 flex items-center">
+                                <input type="number" id="sdInput" step="0.1" placeholder="Padrão: fck+8MPa" class="w-full bg-gray-50 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <span class="ml-2 text-gray-500">MPa</span>
+                            </div>
+                        </div>
+                        <div>
                             <label for="cementType" class="block text-sm font-medium text-gray-700">Tipo de Cimento (NBR 16697)</label>
                             <select id="cementType" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                                 <option value="0.25">CP I (Comum)</option>
-                                <option value="0.25">CP II (Composto)</option>
+                                <option value="0.25" selected>CP II (Composto)</option>
                                 <option value="0.38">CP III / CP IV (Lento)</option>
                                 <option value="0.20">CP V-ARI (Alta Resistência Inicial)</option>
                             </select>
@@ -59,7 +73,7 @@
                          <div>
                             <label for="analysisMode" class="block text-sm font-medium text-gray-700">Modo de Análise</label>
                             <select id="analysisMode" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                                <option value="adjusted">Regressão Ajustada (Padrão)</option>
+                                <option value="adjusted">Regressão Otimizada (Padrão)</option>
                                 <option value="normative">Forçar Curva Normativa</option>
                             </select>
                         </div>
@@ -102,11 +116,13 @@
                             <div id="predictedResistance" class="mt-1 text-xl font-bold text-red-700">-- MPa</div>
                         </div>
                     </div>
+                    <button id="generateReportBtn" class="mt-4 w-full bg-gray-700 text-white py-2 px-4 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150 ease-in-out text-sm font-medium disabled:bg-gray-400" disabled>
+                        Gerar Relatório de Análise
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- Seção de Equações -->
         <div id="equationsSection" class="mt-8 bg-white p-4 sm:p-6 rounded-xl shadow-lg hidden">
             <h2 class="text-lg font-semibold border-b pb-2 mb-4">Equações Aplicadas</h2>
             <div class="space-y-4 text-sm">
@@ -126,10 +142,25 @@
         </footer>
     </div>
 
+    <!-- Modal de Relatório -->
+    <div id="reportModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0 z-50">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform scale-95">
+            <div class="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-gray-800">Relatório de Análise Interpretativa</h2>
+                <button id="closeReportBtn" class="text-gray-500 hover:text-gray-800">&times;</button>
+            </div>
+            <div id="reportContent" class="p-6 space-y-4 text-gray-700">
+                <!-- Conteúdo do relatório será inserido aqui -->
+            </div>
+        </div>
+    </div>
+
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const ctx = document.getElementById('resistanceChart').getContext('2d');
             const fckInput = document.getElementById('fckInput');
+            const sdInput = document.getElementById('sdInput');
             const cementTypeSelect = document.getElementById('cementType');
             const analysisModeSelect = document.getElementById('analysisMode');
             const dataTableBody = document.getElementById('dataTableBody');
@@ -140,6 +171,10 @@
             const equationsSection = document.getElementById('equationsSection');
             const theoreticalEquationDiv = document.getElementById('theoreticalEquation');
             const characteristicEquationDiv = document.getElementById('characteristicEquation');
+            const generateReportBtn = document.getElementById('generateReportBtn');
+            const reportModal = document.getElementById('reportModal');
+            const reportContent = document.getElementById('reportContent');
+            const closeReportBtn = document.getElementById('closeReportBtn');
 
             let realData = [];
             let resistanceChart;
@@ -158,21 +193,30 @@
                 return data;
             };
             
-            const findBestFitS = (dataPoints, fcm) => {
+            const findBestFitParameters = (dataPoints) => {
                 if (dataPoints.length < 2) return null;
-                let bestS = null;
+                
+                let bestS = null, bestFcm = null;
                 let minError = Infinity;
-                for (let s = 0.01; s <= 0.60; s += 0.001) {
-                    let currentError = 0;
-                    dataPoints.forEach(point => {
-                        currentError += Math.pow(point.mpa - calculateResistance(fcm, s, point.days), 2);
-                    });
-                    if (currentError < minError) {
-                        minError = currentError;
-                        bestS = s;
+
+                const maxMpa = Math.max(...dataPoints.map(p => p.mpa));
+                const fcmRangeStart = Math.max(10, maxMpa);
+                const fcmRangeEnd = fcmRangeStart + 40;
+
+                for (let fcm = fcmRangeStart; fcm <= fcmRangeEnd; fcm += 0.5) {
+                    for (let s = 0.05; s <= 0.60; s += 0.005) {
+                        let currentError = 0;
+                        dataPoints.forEach(point => {
+                            currentError += Math.pow(point.mpa - calculateResistance(fcm, s, point.days), 2);
+                        });
+                        if (currentError < minError) {
+                            minError = currentError;
+                            bestS = s;
+                            bestFcm = fcm;
+                        }
                     }
                 }
-                return bestS;
+                return { s: bestS, fcm: bestFcm };
             };
             
             const findBestFitFcm = (dataPoints, s) => {
@@ -223,19 +267,23 @@
 
                 if (analysis.pointsCount === 0) {
                     message = 'Adicione pelo menos um resultado de ensaio para iniciar a análise.';
-                } else if (analysis.mode === 'normative') {
-                    message = '<b>Análise Normativa:</b> A forma da curva segue o padrão NBR 6118. A altura da curva foi ajustada para melhor se aproximar dos seus dados.';
-                    bgColor = 'bg-blue-100';
-                    textColor = 'text-blue-800';
-                } else { // adjusted mode
-                     if (analysis.pointsCount < 2) {
-                        message = '<b>Modo de Regressão:</b> Adicione pelo menos 2 pontos para que a tendência real seja calculada.';
-                        bgColor = 'bg-yellow-100';
-                        textColor = 'text-yellow-800';
-                    } else {
-                        message = `<b>Análise Ajustada (s=${analysis.s.toFixed(3)}):</b> A curva foi otimizada com base na tendência real dos seus dados.`;
-                        bgColor = 'bg-green-100';
-                        textColor = 'text-green-800';
+                    generateReportBtn.disabled = true;
+                } else {
+                    generateReportBtn.disabled = false;
+                    if (analysis.mode === 'normative') {
+                        message = `<b>Análise Normativa (fcm ajustado: ${analysis.fcm.toFixed(1)} MPa):</b> A forma da curva segue o padrão NBR 6118. A altura foi ajustada aos seus dados.`;
+                        bgColor = 'bg-blue-100';
+                        textColor = 'text-blue-800';
+                    } else { // adjusted mode
+                         if (analysis.pointsCount < 2) {
+                            message = `<b>Diagnóstico Inicial (fcm estimado: ${analysis.fcm.toFixed(1)} MPa):</b> A previsão usa o 's' normativo. Adicione mais pontos para uma análise otimizada.`;
+                            bgColor = 'bg-yellow-100';
+                            textColor = 'text-yellow-800';
+                        } else {
+                            message = `<b>Análise Otimizada (fcm: ${analysis.fcm.toFixed(1)} MPa, s: ${analysis.s.toFixed(3)}):</b> A curva foi otimizada com base na tendência real dos seus dados.`;
+                            bgColor = 'bg-green-100';
+                            textColor = 'text-green-800';
+                        }
                     }
                 }
                 
@@ -260,7 +308,10 @@
 
             const updateApp = () => {
                 const fck = parseFloat(fckInput.value) || 0;
-                const fcm_base = fck + 8;
+                const sd = parseFloat(sdInput.value) || 0;
+                
+                const fcm_base = sd > 0 ? (fck + 1.65 * sd) : (fck + 8);
+
                 const s_normative = parseFloat(cementTypeSelect.value);
                 const analysisMode = analysisModeSelect.value;
 
@@ -274,11 +325,15 @@
                         fcm_final = findBestFitFcm(realData, s_final) || fcm_base;
                     } else { // adjusted mode
                         if (realData.length > 1) {
-                            s_final = findBestFitS(realData, fcm_base) || s_normative;
+                            const bestFit = findBestFitParameters(realData);
+                            if(bestFit) {
+                                s_final = bestFit.s;
+                                fcm_final = bestFit.fcm;
+                            }
                         } else {
-                            s_final = s_normative; // Fallback for 1 point in adjusted mode
+                            s_final = s_normative;
+                            fcm_final = findBestFitFcm(realData, s_final) || fcm_base;
                         }
-                        fcm_final = fcm_base;
                     }
 
                     let maxDifference = 0;
@@ -292,7 +347,7 @@
                     safetyOffset = maxDifference;
                 }
                 
-                lastAnalysis = { fcm: fcm_final, s: s_final, offset: safetyOffset };
+                lastAnalysis = { fcm: fcm_final, s: s_final, offset: safetyOffset, fcm_base, s_normative, fck };
 
                 const theoreticalCurve = generateCurveData(fcm_base, s_normative);
                 const characteristicCurve = generateCurveData(fcm_final, s_final).map(p => ({ x: p.x, y: Math.max(0, p.y - safetyOffset) }));
@@ -308,7 +363,7 @@
                 
                 resistanceChart.update();
                 updatePrediction();
-                updateGuidance({ pointsCount: realData.length, mode: analysisMode, s: s_final });
+                updateGuidance({ pointsCount: realData.length, mode: analysisMode, s: s_final, fcm: fcm_final });
                 updateEquations({fcm_base, s_normative, fcm_final, s_final, safetyOffset});
             };
 
@@ -326,8 +381,77 @@
                 renderTable();
                 updateApp();
             });
-            [fckInput, cementTypeSelect, analysisModeSelect].forEach(el => el.addEventListener('change', updateApp));
+            [fckInput, sdInput, cementTypeSelect, analysisModeSelect].forEach(el => el.addEventListener('change', updateApp));
             predictionDaysInput.addEventListener('input', updatePrediction);
+            
+            const generateReport = () => {
+                const { fcm, s, fcm_base, s_normative, fck } = lastAnalysis;
+                const fck_est_28 = calculateResistance(fcm, s, 28) - lastAnalysis.offset;
+
+                let diagnosis = '';
+                let performance = '';
+                let causes = '';
+                let recommendations = '';
+
+                if (fck_est_28 >= fck) {
+                    diagnosis = `<div class="p-3 text-green-800 bg-green-100 rounded-lg"><b>Diagnóstico Geral:</b> O concreto apresenta desempenho <b>satisfatório</b>, com projeção de atingir a resistência de projeto.</div>`;
+                } else {
+                    diagnosis = `<div class="p-3 text-yellow-800 bg-yellow-100 rounded-lg"><b>Diagnóstico Geral:</b> O concreto apresenta desempenho <b>abaixo do esperado</b>, com projeção de <b>não</b> atingir a resistência de projeto.</div>`;
+                }
+
+                const s_comparison = s > s_normative ? "mais lento" : "mais rápido";
+                const fcm_comparison = fcm > fcm_base ? "superior" : "inferior";
+                performance = `A análise dos dados indica um concreto com resistência potencial (${fcm.toFixed(1)} MPa) <b>${fcm_comparison}</b> à referência teórica (${fcm_base.toFixed(1)} MPa) e com uma velocidade de ganho de resistência <b>${s_comparison}</b> (s=${s.toFixed(3)}) que o esperado para o cimento selecionado (s=${s_normative.toFixed(3)}).`;
+
+                if (fck_est_28 < fck) {
+                    causes = `
+                        <h4 class="font-semibold mt-4">Possíveis Causas para o Baixo Desempenho:</h4>
+                        <ul class="list-disc list-inside space-y-1 mt-2">
+                            <li><b>Dosagem (Traço):</b> Relação água/cimento elevada, consumo de cimento insuficiente ou erro na pesagem dos materiais.</li>
+                            <li><b>Materiais:</b> Qualidade dos agregados, tipo/classe do cimento, uso de aditivos inadequados.</li>
+                            <li><b>Processos:</b> Falha na mistura, transporte inadequado, adensamento incorreto ou tempo excessivo de aplicação.</li>
+                            <li><b>Cura:</b> Cura deficiente (falta de umidade, temperatura inadequada) nas primeiras idades é uma causa comum.</li>
+                            <li><b>Ensaio:</b> Problemas na moldagem, armazenamento ou rompimento dos corpos de prova.</li>
+                        </ul>`;
+                    recommendations = `
+                        <h4 class="font-semibold mt-4">Recomendações:</h4>
+                        <ul class="list-disc list-inside space-y-1 mt-2">
+                            <li>Realizar ensaios adicionais em idades futuras (ex: 14 e 28 dias) para confirmar a tendência.</li>
+                            <li>Verificar os registros de dosagem do lote de concreto em questão.</li>
+                            <li>Inspecionar as condições de cura aplicadas na estrutura.</li>
+                            <li>Considerar a extração de testemunhos da estrutura (conforme NBR 7680) se a tendência de baixa resistência se confirmar.</li>
+                        </ul>`;
+                } else {
+                    recommendations = `
+                        <h4 class="font-semibold mt-4">Recomendações:</h4>
+                        <ul class="list-disc list-inside space-y-1 mt-2">
+                            <li>Continuar com o plano de controle tecnológico para garantir a manutenção do bom desempenho.</li>
+                            <li>Os dados indicam que o traço e os processos de execução estão adequados.</li>
+                        </ul>`;
+                }
+
+                reportContent.innerHTML = `
+                    ${diagnosis}
+                    <div class="mt-4">
+                        <h4 class="font-semibold">Análise Comparativa:</h4>
+                        <p class="mt-2">${performance}</p>
+                    </div>
+                    ${causes}
+                    ${recommendations}
+                `;
+            };
+
+            generateReportBtn.addEventListener('click', () => {
+                generateReport();
+                reportModal.classList.remove('hidden', 'opacity-0');
+                reportModal.querySelector('.modal-content').classList.remove('scale-95');
+            });
+
+            closeReportBtn.addEventListener('click', () => {
+                reportModal.classList.add('opacity-0');
+                reportModal.querySelector('.modal-content').classList.add('scale-95');
+                setTimeout(() => reportModal.classList.add('hidden'), 300);
+            });
 
             const initializeChart = () => {
                 resistanceChart = new Chart(ctx, {
