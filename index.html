@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -7,9 +6,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js"></script>
-    <!-- KaTeX para renderização de equações LaTeX -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js"></script>
+    <!-- Bibliotecas para Exportação PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,12 +20,50 @@
             font-family: 'Inter', sans-serif;
         }
         .katex { font-size: 1.1em; }
-        /* Estilos para o Modal */
-        .modal-overlay {
-            transition: opacity 0.3s ease;
+        .modal-overlay { transition: opacity 0.3s ease; }
+        .modal-content { transition: transform 0.3s ease; }
+        
+        /* Estilos para Tooltip */
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
         }
-        .modal-content {
-            transition: transform 0.3s ease;
+        .tooltip-icon {
+            cursor: pointer;
+            margin-left: 4px;
+            color: #6b7280;
+        }
+        .tooltip-text {
+            visibility: hidden;
+            width: 220px;
+            background-color: #1f2937;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.75rem;
+            line-height: 1.2;
+        }
+        .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1f2937 transparent transparent transparent;
+        }
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
         }
     </style>
 </head>
@@ -32,32 +71,38 @@
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <header class="text-center mb-8">
-            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Análise Preditiva de Resistência do Concreto</h1>
-            <p class="text-sm sm:text-base text-gray-600 mt-2">Estime a resistência característica futura com base nos resultados de ensaio.</p>
+            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Análise Preditiva de Resistência</h1>
+            <p class="text-sm sm:text-base text-gray-600 mt-2">Estime a resistência do concreto com base em ensaios de laboratório.</p>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
-            <div class="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-lg h-96 lg:h-auto">
-                <canvas id="resistanceChart"></canvas>
+            <div id="captureArea" class="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-lg h-auto">
+                <canvas id="resistanceChart" class="h-96 lg:h-auto"></canvas>
             </div>
 
             <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg flex flex-col space-y-6">
                 
                 <div>
-                    <h2 class="text-lg font-semibold border-b pb-2 mb-4">Parâmetros</h2>
+                    <h2 class="text-lg font-semibold border-b pb-2 mb-4">Parâmetros da Análise</h2>
                     <div class="space-y-4">
                         <div>
                             <label for="fckInput" class="block text-sm font-medium text-gray-700">Resistência de Projeto (fck)</label>
                             <div class="mt-1 flex items-center">
-                                <input type="number" id="fckInput" value="25" class="w-full bg-gray-50 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <input type="number" id="fckInput" value="25" min="10" max="150" class="w-full bg-gray-50 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                                 <span class="ml-2 text-gray-500">MPa</span>
                             </div>
                         </div>
                         <div>
-                            <label for="sdInput" class="block text-sm font-medium text-gray-700">Desvio Padrão de Dosagem (sd)</label>
+                            <div class="flex items-center">
+                                <label for="sdInput" class="block text-sm font-medium text-gray-700">Desvio Padrão de Dosagem (sd)</label>
+                                <div class="tooltip-container">
+                                    <span class="tooltip-icon">ⓘ</span>
+                                    <span class="tooltip-text">Valor conforme NBR 12655. Usar 4.0 MPa para condição A (laboratório/concreteira com controle rigoroso). Mínimo de 2.0 MPa.</span>
+                                </div>
+                            </div>
                             <div class="mt-1 flex items-center">
-                                <input type="number" id="sdInput" step="0.1" placeholder="Padrão: fck+8MPa" class="w-full bg-gray-50 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <input type="number" id="sdInput" step="0.1" min="2.0" placeholder="Padrão: 4.0 MPa" class="w-full bg-gray-50 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                                 <span class="ml-2 text-gray-500">MPa</span>
                             </div>
                         </div>
@@ -65,13 +110,15 @@
                             <label for="cementType" class="block text-sm font-medium text-gray-700">Tipo de Cimento (NBR 16697)</label>
                             <select id="cementType" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                                 <option value="0.25">CP I (Comum)</option>
-                                <option value="0.25" selected>CP II (Composto)</option>
+                                <option value="0.23" selected>CP II-F (c/ Fíler)</option>
+                                <option value="0.20">CP II-E (c/ Escória)</option>
+                                <option value="0.28">CP II-Z (c/ Pozolana)</option>
                                 <option value="0.38">CP III / CP IV (Lento)</option>
-                                <option value="0.20">CP V-ARI (Alta Resistência Inicial)</option>
+                                <option value="0.15">CP V-ARI (Rápido)</option>
                             </select>
                         </div>
                          <div>
-                            <label for="analysisMode" class="block text-sm font-medium text-gray-700">Modo de Análise</label>
+                            <label for="analysisMode" class="block text-sm font-medium text-gray-700">Modo de Análise da Curva</label>
                             <select id="analysisMode" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                                 <option value="adjusted">Regressão Otimizada (Padrão)</option>
                                 <option value="normative">Forçar Curva Normativa</option>
@@ -95,17 +142,23 @@
                             </tbody>
                         </table>
                     </div>
-                    <button id="addPointBtn" class="mt-4 w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out text-sm font-medium">
-                        Adicionar Ensaio
-                    </button>
+                    <div class="flex gap-2 mt-4">
+                        <button id="addPointBtn" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out text-sm font-medium">
+                            Adicionar
+                        </button>
+                        <button id="importCsvBtn" class="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition duration-150 ease-in-out text-sm font-medium">
+                            Importar CSV
+                        </button>
+                        <input type="file" id="csvFileInput" class="hidden" accept=".csv">
+                    </div>
                 </div>
 
                 <div class="mt-2">
-                    <h2 class="text-lg font-semibold border-b pb-2 mb-4">Análise Preditiva</h2>
+                    <h2 class="text-lg font-semibold border-b pb-2 mb-4">Resultados e Ações</h2>
                     <div id="guidanceBox" class="p-3 mb-4 text-sm rounded-lg"></div>
-                    <div class="space-y-4 p-4 bg-indigo-50 rounded-lg">
+                    <div class="space-y-2 p-4 bg-indigo-50 rounded-lg">
                         <div>
-                            <label for="predictionDays" class="block text-sm font-medium text-indigo-800">Calcular resistência para:</label>
+                            <label for="predictionDays" class="block text-sm font-medium text-indigo-800">Calcular fck,est para:</label>
                             <div class="mt-1 flex items-center">
                                 <input type="number" id="predictionDays" placeholder="Ex: 28" class="w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                                 <span class="ml-2 text-gray-500">dias</span>
@@ -116,9 +169,14 @@
                             <div id="predictedResistance" class="mt-1 text-xl font-bold text-red-700">-- MPa</div>
                         </div>
                     </div>
-                    <button id="generateReportBtn" class="mt-4 w-full bg-gray-700 text-white py-2 px-4 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150 ease-in-out text-sm font-medium disabled:bg-gray-400" disabled>
-                        Gerar Relatório de Análise
-                    </button>
+                    <div class="flex flex-col gap-2 mt-4">
+                        <button id="generateReportBtn" class="w-full bg-gray-700 text-white py-2 px-4 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150 ease-in-out text-sm font-medium disabled:bg-gray-400" disabled>
+                            Gerar Relatório
+                        </button>
+                        <button id="exportPdfBtn" class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-150 ease-in-out text-sm font-medium disabled:bg-red-400" disabled>
+                            Exportar PDF
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -147,67 +205,49 @@
         <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform scale-95">
             <div class="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
                 <h2 class="text-xl font-bold text-gray-800">Relatório de Análise Interpretativa</h2>
-                <button id="closeReportBtn" class="text-gray-500 hover:text-gray-800">&times;</button>
+                <button id="closeReportBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
             </div>
-            <div id="reportContent" class="p-6 space-y-4 text-gray-700">
-                <!-- Conteúdo do relatório será inserido aqui -->
-            </div>
+            <div id="reportContent" class="p-6 space-y-4 text-gray-700"></div>
         </div>
     </div>
 
-
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const ctx = document.getElementById('resistanceChart').getContext('2d');
-            const fckInput = document.getElementById('fckInput');
-            const sdInput = document.getElementById('sdInput');
-            const cementTypeSelect = document.getElementById('cementType');
-            const analysisModeSelect = document.getElementById('analysisMode');
-            const dataTableBody = document.getElementById('dataTableBody');
-            const addPointBtn = document.getElementById('addPointBtn');
-            const predictionDaysInput = document.getElementById('predictionDays');
-            const predictedResistanceDisplay = document.getElementById('predictedResistance');
-            const guidanceBox = document.getElementById('guidanceBox');
-            const equationsSection = document.getElementById('equationsSection');
-            const theoreticalEquationDiv = document.getElementById('theoreticalEquation');
-            const characteristicEquationDiv = document.getElementById('characteristicEquation');
-            const generateReportBtn = document.getElementById('generateReportBtn');
-            const reportModal = document.getElementById('reportModal');
-            const reportContent = document.getElementById('reportContent');
-            const closeReportBtn = document.getElementById('closeReportBtn');
+    document.addEventListener('DOMContentLoaded', () => {
 
-            let realData = [];
-            let resistanceChart;
-            let lastAnalysis = {};
-
-            const calculateResistance = (fcm, s, t) => {
+        // --- 1. MÓDULO DE CÁLCULOS (LÓGICA PURA) ---
+        const Calculator = {
+            validateInput(value, name, min = -Infinity, max = Infinity) {
+                const numValue = parseFloat(value);
+                if (isNaN(numValue)) throw new Error(`Parâmetro "${name}" deve ser um número.`);
+                if (numValue < min) throw new Error(`Parâmetro "${name}" deve ser no mínimo ${min}.`);
+                if (numValue > max) throw new Error(`Parâmetro "${name}" deve ser no máximo ${max}.`);
+                return numValue;
+            },
+            calculateResistance: (fcm, s, t) => {
                 if (t <= 0) return 0;
                 return fcm * Math.exp(s * (1 - Math.sqrt(28 / t)));
-            };
-
-            const generateCurveData = (fcm, s, maxDays = 90) => {
-                const data = [{ x: 0, y: 0 }];
-                for (let t = 1; t <= maxDays; t++) {
-                    data.push({ x: t, y: calculateResistance(fcm, s, t) });
+            },
+            generateCurveData(fcm, s, maxDays = 90) {
+                const data = [];
+                for (let t = 0.5; t <= maxDays; t += 0.5) {
+                    data.push({ x: t, y: this.calculateResistance(fcm, s, t) });
                 }
+                data.sort((a, b) => a.x - b.x);
                 return data;
-            };
-            
-            const findBestFitParameters = (dataPoints) => {
+            },
+            findBestFitParameters(dataPoints) {
                 if (dataPoints.length < 2) return null;
-                
                 let bestS = null, bestFcm = null;
                 let minError = Infinity;
-
                 const maxMpa = Math.max(...dataPoints.map(p => p.mpa));
-                const fcmRangeStart = Math.max(10, maxMpa);
-                const fcmRangeEnd = fcmRangeStart + 40;
-
-                for (let fcm = fcmRangeStart; fcm <= fcmRangeEnd; fcm += 0.5) {
+                const fcmRangeStart = Math.max(1, maxMpa * 0.5);
+                const fcmRangeEnd = (maxMpa * 2) + 20;
+                const fcmStep = Math.max(0.1, (fcmRangeEnd - fcmRangeStart) / 100);
+                for (let fcm = fcmRangeStart; fcm <= fcmRangeEnd; fcm += fcmStep) {
                     for (let s = 0.05; s <= 0.60; s += 0.005) {
                         let currentError = 0;
                         dataPoints.forEach(point => {
-                            currentError += Math.pow(point.mpa - calculateResistance(fcm, s, point.days), 2);
+                            currentError += Math.pow(point.mpa - this.calculateResistance(fcm, s, point.days), 2);
                         });
                         if (currentError < minError) {
                             minError = currentError;
@@ -217,285 +257,579 @@
                     }
                 }
                 return { s: bestS, fcm: bestFcm };
-            };
-            
-            const findBestFitFcm = (dataPoints, s) => {
+            },
+            findBestFitFcm(dataPoints, s) {
                 if (dataPoints.length < 1) return null;
                 let numerator = 0;
                 let denominator = 0;
                 dataPoints.forEach(point => {
-                    if(point.days > 0) {
+                    if (point.days > 0) {
                         const k = Math.exp(s * (1 - Math.sqrt(28 / point.days)));
                         numerator += point.mpa * k;
                         denominator += k * k;
                     }
                 });
                 return denominator > 0 ? numerator / denominator : null;
-            };
-
-            const renderTable = () => {
-                dataTableBody.innerHTML = '';
-                realData.forEach((point, index) => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="px-2 py-1"><input type="number" value="${point.days}" data-index="${index}" data-prop="days" class="w-full bg-gray-50 border-gray-200 rounded py-1 px-2 text-sm"></td>
-                        <td class="px-2 py-1"><input type="number" step="0.1" value="${point.mpa}" data-index="${index}" data-prop="mpa" class="w-full bg-gray-50 border-gray-200 rounded py-1 px-2 text-sm"></td>
-                        <td class="px-2 py-1 text-right"><button data-index="${index}" class="remove-btn text-red-600 hover:text-red-900 text-sm">Remover</button></td>
-                    `;
-                    dataTableBody.appendChild(row);
-                });
-                document.querySelectorAll('#dataTableBody input').forEach(input => input.addEventListener('change', handleTableInputChange));
-                document.querySelectorAll('.remove-btn').forEach(btn => btn.addEventListener('click', handleRemovePoint));
-            };
-
-            const updatePrediction = () => {
-                const { fcm, s, offset } = lastAnalysis;
-                const days = parseFloat(predictionDaysInput.value);
-                if (!isNaN(days) && days > 0 && s && fcm) {
-                    const meanResistance = calculateResistance(fcm, s, days);
-                    const characteristicResistance = Math.max(0, meanResistance - offset);
-                    predictedResistanceDisplay.innerHTML = `${characteristicResistance.toFixed(2)} MPa`;
-                } else {
-                    predictedResistanceDisplay.innerHTML = '-- MPa';
-                }
-            };
-            
-            const updateGuidance = (analysis) => {
-                let message = '';
-                let bgColor = 'bg-gray-100';
-                let textColor = 'text-gray-800';
-
-                if (analysis.pointsCount === 0) {
-                    message = 'Adicione pelo menos um resultado de ensaio para iniciar a análise.';
-                    generateReportBtn.disabled = true;
-                } else {
-                    generateReportBtn.disabled = false;
-                    if (analysis.mode === 'normative') {
-                        message = `<b>Análise Normativa (fcm ajustado: ${analysis.fcm.toFixed(1)} MPa):</b> A forma da curva segue o padrão NBR 6118. A altura foi ajustada aos seus dados.`;
-                        bgColor = 'bg-blue-100';
-                        textColor = 'text-blue-800';
-                    } else { // adjusted mode
-                         if (analysis.pointsCount < 2) {
-                            message = `<b>Diagnóstico Inicial (fcm estimado: ${analysis.fcm.toFixed(1)} MPa):</b> A previsão usa o 's' normativo. Adicione mais pontos para uma análise otimizada.`;
-                            bgColor = 'bg-yellow-100';
-                            textColor = 'text-yellow-800';
-                        } else {
-                            message = `<b>Análise Otimizada (fcm: ${analysis.fcm.toFixed(1)} MPa, s: ${analysis.s.toFixed(3)}):</b> A curva foi otimizada com base na tendência real dos seus dados.`;
-                            bgColor = 'bg-green-100';
-                            textColor = 'text-green-800';
-                        }
-                    }
-                }
-                
-                guidanceBox.className = `p-3 mb-4 text-sm rounded-lg ${bgColor} ${textColor}`;
-                guidanceBox.innerHTML = message;
-            };
-            
-            const updateEquations = (params) => {
-                if(!params.s_final || !params.fcm_final) {
-                    equationsSection.classList.add('hidden');
-                    return;
-                }
-                
-                equationsSection.classList.remove('hidden');
-
-                const th_eq = `f_{cm}(t) = ${params.fcm_base.toFixed(2)} \\cdot e^{\\left[${params.s_normative.toFixed(3)} \\cdot \\left(1 - \\sqrt{\\frac{28}{t}}\\right)\\right]}`;
-                const ch_eq = `f_{ck,est}(t) = ${params.fcm_final.toFixed(2)} \\cdot e^{\\left[${params.s_final.toFixed(3)} \\cdot \\left(1 - \\sqrt{\\frac{28}{t}}\\right)\\right]} - ${params.safetyOffset.toFixed(2)}`;
-
-                katex.render(th_eq, theoreticalEquationDiv, { throwOnError: false });
-                katex.render(ch_eq, characteristicEquationDiv, { throwOnError: false });
-            };
-
-            const updateApp = () => {
-                const fck = parseFloat(fckInput.value) || 0;
-                const sd = parseFloat(sdInput.value) || 0;
-                
-                const fcm_base = sd > 0 ? (fck + 1.65 * sd) : (fck + 8);
-
-                const s_normative = parseFloat(cementTypeSelect.value);
-                const analysisMode = analysisModeSelect.value;
-
+            },
+            performAnalysis(state) {
+                const { fck, sd, s_normative, realData, analysisMode } = state;
+                const fcm_base = fck + 1.65 * sd;
                 let s_final = s_normative;
                 let fcm_final = fcm_base;
                 let safetyOffset = 0;
-
                 if (realData.length > 0) {
                     if (analysisMode === 'normative') {
                         s_final = s_normative;
-                        fcm_final = findBestFitFcm(realData, s_final) || fcm_base;
-                    } else { // adjusted mode
+                        fcm_final = this.findBestFitFcm(realData, s_final) || fcm_base;
+                    } else {
                         if (realData.length > 1) {
-                            const bestFit = findBestFitParameters(realData);
-                            if(bestFit) {
-                                s_final = bestFit.s;
-                                fcm_final = bestFit.fcm;
-                            }
+                            const bestFit = this.findBestFitParameters(realData);
+                            if (bestFit) { s_final = bestFit.s; fcm_final = bestFit.fcm; }
                         } else {
                             s_final = s_normative;
-                            fcm_final = findBestFitFcm(realData, s_final) || fcm_base;
+                            fcm_final = this.findBestFitFcm(realData, s_final) || fcm_base;
                         }
                     }
-
                     let maxDifference = 0;
                     realData.forEach(point => {
-                        const meanPrediction = calculateResistance(fcm_final, s_final, point.days);
+                        const meanPrediction = this.calculateResistance(fcm_final, s_final, point.days);
                         const difference = meanPrediction - point.mpa;
-                        if (difference > maxDifference) {
-                            maxDifference = difference;
-                        }
+                        if (difference > maxDifference) { maxDifference = difference; }
                     });
                     safetyOffset = maxDifference;
                 }
-                
-                lastAnalysis = { fcm: fcm_final, s: s_final, offset: safetyOffset, fcm_base, s_normative, fck };
+                return { fcm: fcm_final, s: s_final, offset: safetyOffset, fcm_base };
+            }
+        };
 
-                const theoreticalCurve = generateCurveData(fcm_base, s_normative);
-                const characteristicCurve = generateCurveData(fcm_final, s_final).map(p => ({ x: p.x, y: Math.max(0, p.y - safetyOffset) }));
-                
-                resistanceChart.data.datasets[0].data = theoreticalCurve.map(p => ({x: p.x, y: p.y.toFixed(2)}));
-                resistanceChart.data.datasets[0].label = `Referência (${cementTypeSelect.options[cementTypeSelect.selectedIndex].text})`;
-                resistanceChart.data.datasets[1].data = characteristicCurve.map(p => ({x: p.x, y: p.y.toFixed(2)}));
-                resistanceChart.data.datasets[2].data = realData.map(p => ({ x: p.days, y: p.mpa }));
-                
-                resistanceChart.options.plugins.annotation.annotations.fckLine.yMin = fck;
-                resistanceChart.options.plugins.annotation.annotations.fckLine.yMax = fck;
-                resistanceChart.options.plugins.annotation.annotations.fckLine.label.content = `fck = ${fck} MPa`;
-                
-                resistanceChart.update();
-                updatePrediction();
-                updateGuidance({ pointsCount: realData.length, mode: analysisMode, s: s_final, fcm: fcm_final });
-                updateEquations({fcm_base, s_normative, fcm_final, s_final, safetyOffset});
-            };
+        // --- 2. APLICAÇÃO PRINCIPAL (CONTROLADOR + STORE + RENDERER) ---
+        const App = {
+            store: {
+                state: {},
+                listeners: [],
+                getState() { return this.state; },
+                subscribe(listener) { this.listeners.push(listener); },
+                commit(mutation, payload) {
+                    this.state = { ...this.state, [mutation]: payload };
+                    this.listeners.forEach(listener => listener(this.state));
+                }
+            },
+            nodes: {},
+            chartInstance: null,
 
-            const handleTableInputChange = (e) => {
-                realData[e.target.dataset.index][e.target.dataset.prop] = parseFloat(e.target.value);
-                updateApp();
-            };
-            const handleRemovePoint = (e) => {
-                realData.splice(e.target.dataset.index, 1);
-                renderTable();
-                updateApp();
-            };
-            addPointBtn.addEventListener('click', () => {
-                realData.push({ days: 7, mpa: 15 });
-                renderTable();
-                updateApp();
-            });
-            [fckInput, sdInput, cementTypeSelect, analysisModeSelect].forEach(el => el.addEventListener('change', updateApp));
-            predictionDaysInput.addEventListener('input', updatePrediction);
+            init() {
+                this.nodes = {
+                    ctx: document.getElementById('resistanceChart').getContext('2d'),
+                    fckInput: document.getElementById('fckInput'),
+                    sdInput: document.getElementById('sdInput'),
+                    cementType: document.getElementById('cementType'),
+                    analysisMode: document.getElementById('analysisMode'),
+                    dataTableBody: document.getElementById('dataTableBody'),
+                    addPointBtn: document.getElementById('addPointBtn'),
+                    predictionDays: document.getElementById('predictionDays'),
+                    predictedResistanceDisplay: document.getElementById('predictedResistance'),
+                    guidanceBox: document.getElementById('guidanceBox'),
+                    equationsSection: document.getElementById('equationsSection'),
+                    theoreticalEquationDiv: document.getElementById('theoreticalEquation'),
+                    characteristicEquationDiv: document.getElementById('characteristicEquation'),
+                    generateReportBtn: document.getElementById('generateReportBtn'),
+                    reportModal: document.getElementById('reportModal'),
+                    reportContent: document.getElementById('reportContent'),
+                    closeReportBtn: document.getElementById('closeReportBtn'),
+                    importCsvBtn: document.getElementById('importCsvBtn'),
+                    csvFileInput: document.getElementById('csvFileInput'),
+                    exportPdfBtn: document.getElementById('exportPdfBtn'),
+                    captureArea: document.getElementById('captureArea')
+                };
+
+                this.store.state = {
+                    fck: parseFloat(this.nodes.fckInput.value) || 25,
+                    sd: parseFloat(this.nodes.sdInput.value) || 4.0,
+                    s_normative: parseFloat(this.nodes.cementType.value) || 0.23,
+                    analysisMode: this.nodes.analysisMode.value,
+                    realData: [],
+                    predictionDays: parseFloat(this.nodes.predictionDays.value) || null,
+                    analysisResults: null
+                };
+
+                this.initializeChart();
+                this.bindEvents();
+                this.store.subscribe(this.update.bind(this));
+                this.update(this.store.getState());
+            },
             
-            const generateReport = () => {
-                const { fcm, s, fcm_base, s_normative, fck } = lastAnalysis;
-                const fck_est_28 = calculateResistance(fcm, s, 28) - lastAnalysis.offset;
-
-                let diagnosis = '';
-                let performance = '';
-                let causes = '';
-                let recommendations = '';
-
-                if (fck_est_28 >= fck) {
-                    diagnosis = `<div class="p-3 text-green-800 bg-green-100 rounded-lg"><b>Diagnóstico Geral:</b> O concreto apresenta desempenho <b>satisfatório</b>, com projeção de atingir a resistência de projeto.</div>`;
-                } else {
-                    diagnosis = `<div class="p-3 text-yellow-800 bg-yellow-100 rounded-lg"><b>Diagnóstico Geral:</b> O concreto apresenta desempenho <b>abaixo do esperado</b>, com projeção de <b>não</b> atingir a resistência de projeto.</div>`;
-                }
-
-                const s_comparison = s > s_normative ? "mais lento" : "mais rápido";
-                const fcm_comparison = fcm > fcm_base ? "superior" : "inferior";
-                performance = `A análise dos dados indica um concreto com resistência potencial (${fcm.toFixed(1)} MPa) <b>${fcm_comparison}</b> à referência teórica (${fcm_base.toFixed(1)} MPa) e com uma velocidade de ganho de resistência <b>${s_comparison}</b> (s=${s.toFixed(3)}) que o esperado para o cimento selecionado (s=${s_normative.toFixed(3)}).`;
-
-                if (fck_est_28 < fck) {
-                    causes = `
-                        <h4 class="font-semibold mt-4">Possíveis Causas para o Baixo Desempenho:</h4>
-                        <ul class="list-disc list-inside space-y-1 mt-2">
-                            <li><b>Dosagem (Traço):</b> Relação água/cimento elevada, consumo de cimento insuficiente ou erro na pesagem dos materiais.</li>
-                            <li><b>Materiais:</b> Qualidade dos agregados, tipo/classe do cimento, uso de aditivos inadequados.</li>
-                            <li><b>Processos:</b> Falha na mistura, transporte inadequado, adensamento incorreto ou tempo excessivo de aplicação.</li>
-                            <li><b>Cura:</b> Cura deficiente (falta de umidade, temperatura inadequada) nas primeiras idades é uma causa comum.</li>
-                            <li><b>Ensaio:</b> Problemas na moldagem, armazenamento ou rompimento dos corpos de prova.</li>
-                        </ul>`;
-                    recommendations = `
-                        <h4 class="font-semibold mt-4">Recomendações:</h4>
-                        <ul class="list-disc list-inside space-y-1 mt-2">
-                            <li>Realizar ensaios adicionais em idades futuras (ex: 14 e 28 dias) para confirmar a tendência.</li>
-                            <li>Verificar os registros de dosagem do lote de concreto em questão.</li>
-                            <li>Inspecionar as condições de cura aplicadas na estrutura.</li>
-                            <li>Considerar a extração de testemunhos da estrutura (conforme NBR 7680) se a tendência de baixa resistência se confirmar.</li>
-                        </ul>`;
-                } else {
-                    recommendations = `
-                        <h4 class="font-semibold mt-4">Recomendações:</h4>
-                        <ul class="list-disc list-inside space-y-1 mt-2">
-                            <li>Continuar com o plano de controle tecnológico para garantir a manutenção do bom desempenho.</li>
-                            <li>Os dados indicam que o traço e os processos de execução estão adequados.</li>
-                        </ul>`;
-                }
-
-                reportContent.innerHTML = `
-                    ${diagnosis}
-                    <div class="mt-4">
-                        <h4 class="font-semibold">Análise Comparativa:</h4>
-                        <p class="mt-2">${performance}</p>
-                    </div>
-                    ${causes}
-                    ${recommendations}
-                `;
-            };
-
-            generateReportBtn.addEventListener('click', () => {
-                generateReport();
-                reportModal.classList.remove('hidden', 'opacity-0');
-                reportModal.querySelector('.modal-content').classList.remove('scale-95');
-            });
-
-            closeReportBtn.addEventListener('click', () => {
-                reportModal.classList.add('opacity-0');
-                reportModal.querySelector('.modal-content').classList.add('scale-95');
-                setTimeout(() => reportModal.classList.add('hidden'), 300);
-            });
-
-            const initializeChart = () => {
-                resistanceChart = new Chart(ctx, {
+            initializeChart() {
+                this.chartInstance = new Chart(this.nodes.ctx, {
                     type: 'line',
-                    data: {
-                        datasets: [
-                            { label: 'Referência', data: [], borderColor: 'rgba(59, 130, 246, 0.7)', borderWidth: 2, pointRadius: 0, tension: 0.4, fill: false, borderDash: [5, 5], cubicInterpolationMode: 'monotone' },
-                            { label: 'Curva Característica Estimada', data: [], borderColor: 'rgba(220, 38, 38, 1)', borderWidth: 3, pointRadius: 0, tension: 0.4, fill: false, cubicInterpolationMode: 'monotone' },
-                            { type: 'scatter', label: 'Resultados Reais (Ensaio)', data: [], backgroundColor: 'rgba(239, 68, 68, 1)', borderColor: 'rgba(220, 38, 38, 1)', pointRadius: 6, pointHoverRadius: 8, z: 10 }
-                        ]
-                    },
+                    data: { datasets: [
+                        { label: 'Referência', data: [], borderColor: 'rgba(59, 130, 246, 0.7)', borderWidth: 2, pointRadius: 0, tension: 0.4, fill: false, borderDash: [5, 5], cubicInterpolationMode: 'monotone' },
+                        { label: 'Curva Característica Estimada', data: [], borderColor: 'rgba(220, 38, 38, 1)', borderWidth: 3, pointRadius: 0, tension: 0.4, fill: false, cubicInterpolationMode: 'monotone' },
+                        { type: 'scatter', label: 'Resultados Reais (Ensaio)', data: [], backgroundColor: 'rgba(239, 68, 68, 1)', borderColor: 'rgba(220, 38, 38, 1)', pointRadius: 6, pointHoverRadius: 8, z: 10 }
+                    ]},
                     options: {
                         responsive: true, maintainAspectRatio: false,
                         scales: {
-                            x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Idade do Concreto (dias)', font: { size: 12 } } },
+                            x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Idade do Concreto (dias)', font: { size: 12 } }, min: 0 },
                             y: { title: { display: true, text: 'Resistência (MPa)', font: { size: 12 } }, beginAtZero: true }
                         },
                         plugins: {
                             legend: { position: 'bottom', align: 'start', labels: { boxWidth: 20, padding: 15, font: { size: 10 } } },
-                            tooltip: {
-                                mode: 'x', intersect: false,
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.dataset.label || '';
-                                        if (label) { label += ': '; }
-                                        if (context.parsed.y !== null) { label += parseFloat(context.parsed.y).toFixed(2) + ' MPa'; }
-                                        return label;
-                                    }
-                                }
-                            },
-                            annotation: {
-                                annotations: {
-                                    fckLine: { type: 'line', yMin: 0, yMax: 0, borderColor: 'rgba(245, 158, 11, 1)', borderWidth: 2, borderDash: [10, 5], label: { content: '', enabled: true, position: 'end', backgroundColor: 'rgba(245, 158, 11, 0.8)', color: 'white', font: { size: 10 } } }
-                                }
-                            }
+                            tooltip: { mode: 'index', intersect: false, callbacks: { label: (c) => `${c.dataset.label || ''}: ${parseFloat(c.parsed.y).toFixed(2)} MPa` } },
+                            annotation: { annotations: { fckLine: { type: 'line', yMin: 0, yMax: 0, borderColor: 'rgba(245, 158, 11, 1)', borderWidth: 2, borderDash: [10, 5], label: { content: '', enabled: true, position: 'end', backgroundColor: 'rgba(245, 158, 11, 0.8)', color: 'white', font: { size: 10 } } } } }
                         }
                     }
                 });
-                renderTable();
-                updateApp();
-            };
+            },
 
-            initializeChart();
-        });
+            bindEvents() {
+                const debounce = (func, delay) => {
+                    let timeout;
+                    return (...args) => {
+                        clearTimeout(timeout);
+                        timeout = setTimeout(() => func.apply(this, args), delay);
+                    };
+                };
+                
+                const debouncedUpdate = debounce((key, value) => this.store.commit(key, value), 300);
+
+                this.nodes.fckInput.addEventListener('input', (e) => debouncedUpdate('fck', parseFloat(e.target.value)));
+                this.nodes.sdInput.addEventListener('input', (e) => debouncedUpdate('sd', parseFloat(e.target.value) || 4.0));
+                this.nodes.cementType.addEventListener('change', (e) => this.store.commit('s_normative', parseFloat(e.target.value)));
+                this.nodes.analysisMode.addEventListener('change', (e) => this.store.commit('analysisMode', e.target.value));
+                this.nodes.predictionDays.addEventListener('input', (e) => debouncedUpdate('predictionDays', parseFloat(e.target.value)));
+
+                this.nodes.addPointBtn.addEventListener('click', () => {
+                    const currentData = this.store.getState().realData;
+                    const newData = [...currentData, { days: 7, mpa: 15 }];
+                    this.store.commit('realData', newData);
+                });
+
+                this.nodes.dataTableBody.addEventListener('change', (e) => {
+                    if (e.target.tagName === 'INPUT') {
+                        const { index, prop } = e.target.dataset;
+                        const currentData = this.store.getState().realData;
+                        const newData = currentData.map((item, i) => i == index ? { ...item, [prop]: parseFloat(e.target.value) } : item);
+                        this.store.commit('realData', newData);
+                    }
+                });
+
+                this.nodes.dataTableBody.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('remove-btn')) {
+                        const { index } = e.target.dataset;
+                        const currentData = this.store.getState().realData;
+                        const newData = currentData.filter((_, i) => i != index);
+                        this.store.commit('realData', newData);
+                    }
+                });
+                
+                this.bindModalEvents();
+            },
+            
+            update(state) {
+                try {
+                    Calculator.validateInput(state.fck, "FCK de Projeto", 10, 150);
+                    Calculator.validateInput(state.sd, "Desvio Padrão", 2.0);
+
+                    const analysisResults = Calculator.performAnalysis(state);
+                    
+                    this.store.state.analysisResults = analysisResults;
+
+                    this.render(this.store.getState());
+
+                } catch (error) {
+                    this.nodes.guidanceBox.className = 'p-3 mb-4 text-sm rounded-lg bg-red-100 text-red-800';
+                    this.nodes.guidanceBox.innerHTML = `<b>Erro de Validação:</b> ${error.message}`;
+                }
+            },
+
+            render(state) {
+                this.renderChart(state);
+                this.renderTable(state);
+                this.renderGuidance(state);
+                this.renderEquations(state);
+                this.renderPrediction(state);
+                this.nodes.generateReportBtn.disabled = state.realData.length === 0;
+                this.nodes.exportPdfBtn.disabled = state.realData.length === 0;
+            },
+            
+            renderChart(state) {
+                const { analysisResults, fck, s_normative, realData } = state;
+                if (!analysisResults || !this.chartInstance) return;
+
+                const theoreticalCurve = Calculator.generateCurveData(analysisResults.fcm_base, s_normative);
+                const characteristicCurve = Calculator.generateCurveData(analysisResults.fcm, analysisResults.s).map(p => ({ x: p.x, y: Math.max(0, p.y - analysisResults.offset) }));
+                
+                this.chartInstance.data.datasets[0].data = theoreticalCurve;
+                this.chartInstance.data.datasets[0].label = `Referência (${this.nodes.cementType.options[this.nodes.cementType.selectedIndex].text})`;
+                this.chartInstance.data.datasets[1].data = characteristicCurve;
+                this.chartInstance.data.datasets[2].data = realData.map(p => ({ x: p.days, y: p.mpa }));
+                
+                this.chartInstance.options.plugins.annotation.annotations.fckLine.yMin = fck;
+                this.chartInstance.options.plugins.annotation.annotations.fckLine.yMax = fck;
+                this.chartInstance.options.plugins.annotation.annotations.fckLine.label.content = `fck = ${fck} MPa`;
+                
+                this.chartInstance.update();
+            },
+
+            renderTable(state) {
+                this.nodes.dataTableBody.innerHTML = '';
+                state.realData.forEach((point, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td class="px-2 py-1"><input type="number" value="${point.days}" data-index="${index}" data-prop="days" class="w-full bg-gray-50 border-gray-200 rounded py-1 px-2 text-sm"></td><td class="px-2 py-1"><input type="number" step="0.1" value="${point.mpa}" data-index="${index}" data-prop="mpa" class="w-full bg-gray-50 border-gray-200 rounded py-1 px-2 text-sm"></td><td class="px-2 py-1 text-right"><button data-index="${index}" class="remove-btn text-red-600 hover:text-red-900 text-sm">Remover</button></td>`;
+                    this.nodes.dataTableBody.appendChild(row);
+                });
+            },
+            
+            renderGuidance(state) {
+                const { analysisResults, analysisMode, realData } = state;
+                if (!analysisResults) return;
+                let message = '';
+                let bgColor = 'bg-gray-100';
+                let textColor = 'text-gray-800';
+                if (realData.length === 0) {
+                    message = 'Adicione pelo menos um resultado de ensaio para iniciar a análise.';
+                } else {
+                    if (analysisMode === 'normative') {
+                        message = `<b>Análise Normativa (fcm ajustado: ${analysisResults.fcm.toFixed(1)} MPa):</b> A forma da curva segue o padrão NBR 6118. A altura foi ajustada aos seus dados.`;
+                        bgColor = 'bg-blue-100'; textColor = 'text-blue-800';
+                    } else {
+                         if (realData.length < 2) {
+                            message = `<b>Diagnóstico Inicial (fcm estimado: ${analysisResults.fcm.toFixed(1)} MPa):</b> A previsão usa o 's' normativo. Adicione mais pontos para uma análise otimizada.`;
+                            bgColor = 'bg-yellow-100'; textColor = 'text-yellow-800';
+                        } else {
+                            message = `<b>Análise Otimizada (fcm: ${analysisResults.fcm.toFixed(1)} MPa, s: ${analysisResults.s.toFixed(3)}):</b> A curva foi otimizada com base na tendência real dos seus dados.`;
+                            bgColor = 'bg-green-100'; textColor = 'text-green-800';
+                        }
+                    }
+                }
+                this.nodes.guidanceBox.className = `p-3 mb-4 text-sm rounded-lg ${bgColor} ${textColor}`;
+                this.nodes.guidanceBox.innerHTML = message;
+            },
+
+            renderEquations(state) {
+                const { analysisResults, s_normative } = state;
+                if (!analysisResults || !analysisResults.s || !analysisResults.fcm) {
+                    this.nodes.equationsSection.classList.add('hidden');
+                    return;
+                }
+                this.nodes.equationsSection.classList.remove('hidden');
+                const th_eq = `f_{cm,ref}(t) = ${analysisResults.fcm_base.toFixed(2)} \\cdot e^{\\left[${s_normative.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]}`;
+                const ch_eq = `f_{ck,est}(t) = \\left( ${analysisResults.fcm.toFixed(2)} \\cdot e^{\\left[${analysisResults.s.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]} \\right) - ${analysisResults.offset.toFixed(2)}`;
+                katex.render(th_eq, this.nodes.theoreticalEquationDiv, { throwOnError: false });
+                katex.render(ch_eq, this.nodes.characteristicEquationDiv, { throwOnError: false });
+            },
+
+            renderPrediction(state) {
+                const { analysisResults, predictionDays } = state;
+                if (!analysisResults || isNaN(predictionDays) || predictionDays <= 0) {
+                    this.nodes.predictedResistanceDisplay.innerHTML = '-- MPa';
+                    return;
+                }
+                const meanResistance = Calculator.calculateResistance(analysisResults.fcm, analysisResults.s, predictionDays);
+                const characteristicResistance = Math.max(0, meanResistance - analysisResults.offset);
+                this.nodes.predictedResistanceDisplay.innerHTML = `${characteristicResistance.toFixed(2)} MPa`;
+            },
+
+            bindModalEvents() {
+                this.nodes.generateReportBtn.addEventListener('click', () => {
+                    this.generateReport();
+                    this.nodes.reportModal.classList.remove('hidden', 'opacity-0');
+                    this.nodes.reportModal.querySelector('.modal-content').classList.remove('scale-95');
+                });
+                this.nodes.closeReportBtn.addEventListener('click', () => {
+                    this.nodes.reportModal.classList.add('opacity-0');
+                    this.nodes.reportModal.querySelector('.modal-content').classList.add('scale-95');
+                    setTimeout(() => this.nodes.reportModal.classList.add('hidden'), 300);
+                });
+                
+                this.nodes.importCsvBtn.addEventListener('click', () => this.nodes.csvFileInput.click());
+                this.nodes.csvFileInput.addEventListener('change', this.handleCsvImport.bind(this));
+                this.nodes.exportPdfBtn.addEventListener('click', this.handlePdfExport.bind(this));
+            },
+            
+            generateReport() {
+                const { analysisResults, fck, sd, s_normative } = this.store.getState();
+                if (!analysisResults) {
+                    this.nodes.reportContent.innerHTML = '<p>Dados insuficientes para gerar o relatório.</p>';
+                    return;
+                }
+                const { fcm, s, fcm_base, offset } = analysisResults;
+                const fck_est_28 = Calculator.calculateResistance(fcm, s, 28) - offset;
+
+                let diagnosis = '', performance = '', causes = '', recommendations = '';
+
+                // 1. Diagnóstico Geral
+                if (fck_est_28 >= fck) {
+                    diagnosis = `<div class="p-3 text-green-800 bg-green-100 rounded-lg"><b>Diagnóstico Geral: Satisfatório.</b> O concreto demonstra um desempenho compatível com o esperado, e a projeção indica que a resistência de projeto (fck = ${fck} MPa) será atingida aos 28 dias (fck,est = ${fck_est_28.toFixed(1)} MPa).</div>`;
+                } else {
+                    diagnosis = `<div class="p-3 text-yellow-800 bg-yellow-100 rounded-lg"><b>Diagnóstico Geral: Alerta.</b> O concreto apresenta desempenho abaixo do esperado. A projeção indica que a resistência de projeto (fck = ${fck} MPa) <b>não</b> será atingida aos 28 dias (fck,est = ${fck_est_28.toFixed(1)} MPa).</div>`;
+                }
+
+                // 2. Análise de Desempenho com Correlações
+                const s_comparison_text = s.toFixed(3) < s_normative.toFixed(3) ?
+                    `<b>mais rápido</b> (s=${s.toFixed(3)}) que o normativo (s=${s_normative.toFixed(3)}). Isso indica uma hidratação acelerada, possivelmente devido ao tipo de cimento (ex: CP V-ARI), aditivos aceleradores ou condições de cura com temperatura elevada.` :
+                    s.toFixed(3) > s_normative.toFixed(3) ?
+                    `<b>mais lento</b> (s=${s.toFixed(3)}) que o normativo (s=${s_normative.toFixed(3)}). Esta tendência pode ser causada por cimentos com adições (CP II, III, IV), aditivos retardadores ou baixas temperaturas de cura.` :
+                    `<b>equivalente</b> (s=${s.toFixed(3)}) ao normativo (s=${s_normative.toFixed(3)}), seguindo a curva de referência para o cimento especificado.`;
+
+                // *** CORREÇÃO: Comparar 'fcm' e 'fcm_base' como números, não como strings.
+                const fcm_comparison_text = fcm < fcm_base ?
+                    `<b>inferior</b> (fcm,real = ${fcm.toFixed(1)} MPa) ao potencial teórico do traço (fcm,teórico = ${fcm_base.toFixed(1)} MPa). Esta é a principal causa para o baixo desempenho final e geralmente está associada a uma relação água/cimento (a/c) maior que a especificada ou a um consumo de cimento insuficiente.` :
+                    `<b>compatível ou superior</b> (fcm,real = ${fcm.toFixed(1)} MPa) ao potencial teórico (fcm,teórico = ${fcm_base.toFixed(1)} MPa), indicando que a dosagem dos materiais (cimento, agregados, água) está adequada para atingir a resistência de referência.`;
+
+                performance = `<h4 class="font-semibold mt-4">Análise de Desempenho e Correlações</h4>
+                               <p>A análise da curva característica do concreto, baseada nos ensaios, revela os seguintes comportamentos quando comparada à curva teórica de referência:</p>
+                               <ul class="list-disc list-inside space-y-1 mt-2">
+                                   <li><b>Velocidade de Ganho de Resistência (Parâmetro 's'):</b> O ganho de resistência está ocorrendo de forma ${s_comparison_text}</li>
+                                   <li><b>Resistência Potencial Média (Parâmetro 'fcm'):</b> A resistência potencial do concreto em si é ${fcm_comparison_text}</li>
+                               </ul>`;
+
+                // 3. Causas e Recomendações
+                if (fck_est_28 < fck) {
+                    causes = `<h4 class="font-semibold mt-4">Possíveis Causas para o Baixo Desempenho:</h4>
+                              <ul class="list-disc list-inside space-y-1 mt-2">
+                                  <li><b>Fator Principal (ligado ao fcm baixo):</b> Relação água/cimento (a/c) elevada; consumo de cimento abaixo do especificado; erro na pesagem dos materiais; qualidade dos agregados (impurezas, granulometria inadequada).</li>
+                                  <li><b>Fatores Secundários (influenciam 's' e fcm):</b> Qualidade e tipo do cimento; temperatura ambiente; processo de cura inadequado (falta de umidade); falhas no processo de execução (mistura, transporte, lançamento, adensamento).</li>
+                                  <li><b>Fatores de Ensaio:</b> Não conformidades na moldagem, transporte, cura e rompimento dos corpos de prova (NBR 5738 e NBR 5739).</li>
+                              </ul>`;
+                    recommendations = `<h4 class="font-semibold mt-4">Recomendações (ABNT NBR 12655):</h4>
+                                       <ul class="list-disc list-inside space-y-1 mt-2">
+                                           <li><b>Ação Imediata:</b> Verificar os registros de dosagem (notas de remessa) e os relatórios de controle de qualidade da central de concreto para o lote em questão.</li>
+                                           <li><b>Investigação:</b> Inspecionar as condições de cura aplicadas na estrutura e continuar o monitoramento com ensaios em idades futuras (ex: 56 dias) para confirmar a tendência da curva.</li>
+                                           <li><b>Análise Estrutural:</b> Comunicar o projetista estrutural. Caso a não conformidade se confirme, ele deverá avaliar a necessidade de ensaios complementares (esclerometria, ultrassom, extração de testemunhos - NBR 7680) e definir as implicações para a segurança e durabilidade da estrutura.</li>
+                                       </ul>`;
+                } else {
+                    recommendations = `<h4 class="font-semibold mt-4">Recomendações:</h4>
+                                       <ul class="list-disc list-inside space-y-1 mt-2">
+                                           <li>Manter o plano de controle tecnológico e os procedimentos de execução que levaram ao bom resultado.</li>
+                                           <li>O desempenho satisfatório indica que a dosagem, os materiais e os processos de execução estão alinhados com as premissas de projeto.</li>
+                                           <li>Considerar a otimização do traço em futuras concretagens, caso o desempenho seja consistentemente superior ao necessário, visando a redução de custos sem comprometer a segurança.</li>
+                                       </ul>`;
+                }
+                this.nodes.reportContent.innerHTML = `${diagnosis}${performance}${causes}${recommendations}`;
+            },
+
+            handleCsvImport(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const text = e.target.result;
+                    const rows = text.split('\n').slice(1); // Ignora cabeçalho
+                    const newPoints = rows.map(row => {
+                        const [days, mpa] = row.split(/[,;]/);
+                        const dayNum = parseFloat(days);
+                        const mpaNum = parseFloat(mpa);
+                        if (!isNaN(dayNum) && !isNaN(mpaNum) && dayNum > 0 && mpaNum > 0) {
+                            return { days: dayNum, mpa: mpaNum };
+                        }
+                        return null;
+                    }).filter(Boolean); // Remove linhas inválidas
+                    
+                    if (newPoints.length > 0) {
+                        this.store.commit('realData', [...this.store.getState().realData, ...newPoints]);
+                    } else {
+                        alert("Nenhum dado válido encontrado no arquivo CSV. O formato esperado é 'idade,resistencia' em cada linha.");
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = ''; // Limpa o input para permitir re-upload do mesmo arquivo
+            },
+            
+            async handlePdfExport() {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+                const state = this.store.getState();
+                const { analysisResults, fck, sd, s_normative, realData } = state;
+
+                if (!analysisResults || realData.length === 0) {
+                    alert("Dados insuficientes para gerar o relatório.");
+                    return;
+                }
+
+                this.nodes.exportPdfBtn.textContent = "Gerando PDF...";
+                this.nodes.exportPdfBtn.disabled = true;
+
+                try {
+                    // --- PÁGINA 1 ---
+                    doc.setFontSize(18);
+                    doc.text("Relatório de Análise Preditiva de Resistência", 105, 15, { align: 'center' });
+
+                    doc.setFontSize(11);
+                    doc.text(`Data de Emissão: ${new Date().toLocaleDateString('pt-BR')}`, 14, 25);
+                    doc.line(14, 27, 196, 27);
+
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text("Parâmetros de Entrada", 14, 35);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(10);
+                    const cementText = this.nodes.cementType.options[this.nodes.cementType.selectedIndex].text;
+                    doc.text(`- Resistência de Projeto (fck): ${fck} MPa`, 16, 42);
+                    doc.text(`- Desvio Padrão de Dosagem (sd): ${sd.toFixed(1)} MPa`, 16, 47);
+                    doc.text(`- Tipo de Cimento (NBR 16697): ${cementText}`, 16, 52);
+                    doc.text(`- Coeficiente Normativo (s): ${s_normative.toFixed(3)}`, 16, 57);
+                    
+                    const canvas = await html2canvas(this.nodes.captureArea, { scale: 2.5 });
+                    const imgData = canvas.toDataURL('image/png');
+
+                    const pageContentWidth = 182; 
+                    const topMargin = 65; 
+                    const bottomMargin = 85; 
+                    const maxChartHeight = doc.internal.pageSize.height - topMargin - bottomMargin;
+
+                    let pdfWidth = pageContentWidth;
+                    let pdfHeight = pdfWidth * (canvas.height / canvas.width); 
+
+                    if (pdfHeight > maxChartHeight) {
+                        pdfHeight = maxChartHeight;
+                        pdfWidth = pdfHeight * (canvas.width / canvas.height);
+                    }
+                    
+                    const pdfX = 14 + (pageContentWidth - pdfWidth) / 2;
+
+                    doc.addImage(imgData, 'PNG', pdfX, topMargin, pdfWidth, pdfHeight);
+
+                    const chartBottomY = topMargin + pdfHeight;
+
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text("Equações Aplicadas", 14, chartBottomY + 10);
+                    
+                    // *** CORREÇÃO: Usar a sintaxe "28/t" em vez de "\frac{28}{t}" para evitar o bug de renderização.
+                    const th_eq_string = `f_{cm,ref}(t) = ${analysisResults.fcm_base.toFixed(2)} \\cdot e^{\\left[${s_normative.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]}`;
+                    const ch_eq_string = `f_{ck,est}(t) = \\left( ${analysisResults.fcm.toFixed(2)} \\cdot e^{\\left[${analysisResults.s.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]} \\right) - ${analysisResults.offset.toFixed(2)}`;
+
+                    let currentY = await this.addKatexToPdf(doc, th_eq_string, 14, chartBottomY + 20, "Curva de Referência (Teórica):");
+                    await this.addKatexToPdf(doc, ch_eq_string, 14, currentY, "Curva Característica (Estimada):");
+
+                    // --- PÁGINA 2 ---
+                    doc.addPage();
+                    doc.setFontSize(16);
+                    doc.text("Diagnóstico Técnico e Recomendações", 105, 15, { align: 'center' });
+
+                    this.generateReport();
+                    await this.addHtmlToPdf(doc, this.nodes.reportContent.innerHTML, 14, 25);
+
+                    doc.save(`relatorio-concreto-${new Date().toISOString().slice(0,10)}.pdf`);
+
+                } catch (err) {
+                    console.error("Erro ao gerar PDF:", err);
+                    alert("Ocorreu um erro ao gerar o PDF.");
+                } finally {
+                    this.nodes.exportPdfBtn.textContent = "Exportar PDF";
+                    this.nodes.exportPdfBtn.disabled = state.realData.length === 0;
+                }
+            },
+
+            // HELPER: Adiciona equação KaTeX como imagem no PDF
+            async addKatexToPdf(doc, latexString, x, y, title) {
+                if (title) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(10);
+                    doc.text(title, x, y - 4);
+                }
+
+                const tempDiv = document.createElement('div');
+                tempDiv.style.position = 'absolute';
+                tempDiv.style.left = '-9999px';
+                tempDiv.style.padding = '0px'; 
+                tempDiv.style.margin = '0px';
+                tempDiv.style.backgroundColor = 'white';
+                tempDiv.style.color = 'black';
+                tempDiv.style.display = 'inline-block';
+                tempDiv.style.lineHeight = '1';
+
+                document.body.appendChild(tempDiv);
+
+                katex.render(latexString, tempDiv, { throwOnError: false, displayMode: true });
+                
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                const katexCanvas = await html2canvas(tempDiv, { scale: 3, backgroundColor: null });
+                const imgData = katexCanvas.toDataURL('image/png');
+                
+                const imgWidth = katexCanvas.width / 11.8;
+                const imgHeight = katexCanvas.height / 11.8;
+                
+                doc.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+                document.body.removeChild(tempDiv);
+                return y + imgHeight + 8;
+            },
+
+            // HELPER: Adiciona conteúdo HTML formatado ao PDF
+            async addHtmlToPdf(doc, htmlContent, startX, startY) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlContent;
+                let yPos = startY;
+                const pageHeight = doc.internal.pageSize.height;
+                const bottomMargin = 20;
+
+                const elements = Array.from(tempDiv.children);
+
+                for (const el of elements) {
+                    const checkPageBreak = (neededHeight) => {
+                        if (yPos + neededHeight > pageHeight - bottomMargin) {
+                            doc.addPage();
+                            yPos = 15;
+                        }
+                    };
+
+                    let text = el.innerText || el.textContent;
+                    let leftMargin = startX;
+
+                    if (el.tagName === 'H4') {
+                        checkPageBreak(12);
+                        yPos += 6;
+                        doc.setFontSize(12);
+                        doc.setFont('helvetica', 'bold');
+                        const splitText = doc.splitTextToSize(text, 182);
+                        doc.text(splitText, leftMargin, yPos);
+                        yPos += (splitText.length * 4.5) + 2;
+                    } else if (el.tagName === 'P') {
+                        checkPageBreak(8);
+                        doc.setFontSize(10);
+                        doc.setFont('helvetica', 'normal');
+                        const splitText = doc.splitTextToSize(text, 182);
+                        doc.text(splitText, leftMargin, yPos);
+                        yPos += (splitText.length * 4.5) + 2;
+                    } else if (el.tagName === 'UL') {
+                        checkPageBreak(10);
+                        yPos += 2;
+                        const listItems = Array.from(el.querySelectorAll('li'));
+                        for (const li of listItems) {
+                             doc.setFontSize(10);
+                             doc.setFont('helvetica', 'normal');
+                             const itemText = doc.splitTextToSize(li.innerText, 178);
+                             checkPageBreak(itemText.length * 4.5);
+                             doc.text(itemText, startX + 4, yPos, { charSpace: 0.1 });
+                             yPos += (itemText.length * 4.5);
+                             doc.text("•", startX, yPos - (itemText.length * 4.5));
+                        }
+                        yPos += 4;
+                    } else if (el.tagName === 'DIV') { // Diagnosis box
+                        doc.setFontSize(10);
+                        doc.setFont('helvetica', 'normal');
+                        const isSuccess = el.classList.contains('bg-green-100');
+                        const bgColor = isSuccess ? '#F0FFF4' : '#FFFBEB';
+                        const borderColor = isSuccess ? '#C6F6D5' : '#FEF3C7';
+                        const textLines = doc.splitTextToSize(text, 178);
+                        const boxHeight = (textLines.length * 4.5) + 6;
+                        checkPageBreak(boxHeight);
+                        doc.setDrawColor(borderColor);
+                        doc.setFillColor(bgColor);
+                        doc.rect(startX, yPos - 4, 182, boxHeight, 'FD');
+                        doc.text(textLines, startX + 2, yPos);
+                        yPos += boxHeight;
+                    }
+                }
+            }
+        };
+        
+        // --- INICIALIZAÇÃO DA APLICAÇÃO ---
+        App.init();
+    });
     </script>
 
 </body>
