@@ -146,9 +146,23 @@
                         <button id="addPointBtn" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out text-sm font-medium">
                             Adicionar
                         </button>
-                        <button id="importCsvBtn" class="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition duration-150 ease-in-out text-sm font-medium">
-                            Importar CSV
-                        </button>
+                        
+                        <!-- Container para o botão de importação e o tooltip -->
+                        <div class="w-full relative">
+                            <button id="importCsvBtn" class="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition duration-150 ease-in-out text-sm font-medium pr-8 text-center">
+                                Importar CSV
+                            </button>
+                            <div class="tooltip-container absolute top-0 right-0 h-full flex items-center pr-3">
+                                <span class="tooltip-icon">ⓘ</span>
+                                <span class="tooltip-text" style="width: 260px; margin-left: -130px; text-align: left; padding: 10px; bottom: 115%;">
+                                    <b>Formato do Arquivo CSV:</b><br>
+                                    - Duas colunas: `idade,resistencia`<br>
+                                    - Separador: vírgula (,) ou ponto e vírgula (;)<br>
+                                    - A primeira linha (cabeçalho) é ignorada.
+                                </span>
+                            </div>
+                        </div>
+
                         <input type="file" id="csvFileInput" class="hidden" accept=".csv">
                     </div>
                 </div>
@@ -264,6 +278,7 @@
                 let denominator = 0;
                 dataPoints.forEach(point => {
                     if (point.days > 0) {
+                        // *** CORREÇÃO: A variável correta é 'point.days', e não 't'.
                         const k = Math.exp(s * (1 - Math.sqrt(28 / point.days)));
                         numerator += point.mpa * k;
                         denominator += k * k;
