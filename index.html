@@ -244,7 +244,7 @@
             },
             generateCurveData(fcm, s, maxDays = 90) {
                 const data = [];
-                for (let t = 0.5; t <= maxDays; t += 0.5) {
+                for (let t = 1; t <= maxDays; t += 0.5) {
                     data.push({ x: t, y: this.calculateResistance(fcm, s, t) });
                 }
                 data.sort((a, b) => a.x - b.x);
@@ -289,29 +289,71 @@
             performAnalysis(state) {
                 const { fck, sd, s_normative, realData, analysisMode } = state;
                 const fcm_base = fck + 1.65 * sd;
+                
+                // *** CORREÇÃO: Inicializar variáveis com valores padrão para garantir robustez.
                 let s_final = s_normative;
                 let fcm_final = fcm_base;
                 let safetyOffset = 0;
+                let ruleApplied = false;
 
                 if (realData.length > 0) {
+                    // Passo 1: Calcular os parâmetros da regressão otimizada
+                    let reg_s = s_normative;
+                    let reg_fcm = fcm_base;
+
                     if (analysisMode === 'normative') {
-                        s_final = s_normative;
-                        fcm_final = this.findBestFitFcm(realData, s_final) || fcm_base;
-                    } else {
+                        reg_fcm = this.findBestFitFcm(realData, reg_s) || fcm_base;
+                    } else { // 'adjusted' mode
                         if (realData.length > 1) {
                             const bestFit = this.findBestFitParameters(realData);
-                            if (bestFit) { s_final = bestFit.s; fcm_final = bestFit.fcm; }
-                        } else {
-                            s_final = s_normative;
-                            fcm_final = this.findBestFitFcm(realData, s_final) || fcm_base;
+                            if (bestFit) { 
+                                reg_s = bestFit.s; 
+                                reg_fcm = bestFit.fcm; 
+                            }
+                        } else { // Apenas 1 ponto de dado
+                            reg_fcm = this.findBestFitFcm(realData, reg_s) || fcm_base;
                         }
                     }
+                    
+                    reg_fcm = Math.min(reg_fcm, fcm_base);
 
-                    // *** ALTERAÇÃO SOLICITADA ***
-                    // Impõe um limite superior ao fcm_final, garantindo que ele não ultrapasse o fcm_base teórico.
-                    // Isso evita que a regressão superestime a resistência potencial do concreto.
-                    fcm_final = Math.min(fcm_final, fcm_base);
+                    // Passo 2: Verificar se a curva teórica deve ser usada no lugar da regressão
+                    let shouldUseTheoretical = false;
+                    if (realData.length > 1 && analysisMode === 'adjusted') {
+                        let isRefCurveBelowAllPoints = true;
+                        let sse_ref = 0;
+                        realData.forEach(point => {
+                            const predicted_ref = this.calculateResistance(fcm_base, s_normative, point.days);
+                            if (point.mpa < predicted_ref) {
+                                isRefCurveBelowAllPoints = false;
+                            }
+                            sse_ref += Math.pow(point.mpa - predicted_ref, 2);
+                        });
 
+                        if (isRefCurveBelowAllPoints) {
+                            let sse_reg = 0;
+                            realData.forEach(point => {
+                                const predicted_reg = this.calculateResistance(reg_fcm, reg_s, point.days);
+                                sse_reg += Math.pow(point.mpa - predicted_reg, 2);
+                            });
+
+                            if (sse_ref < sse_reg) {
+                                shouldUseTheoretical = true;
+                                ruleApplied = true;
+                            }
+                        }
+                    }
+                    
+                    // Passo 3: Definir os parâmetros finais com base na regra
+                    if (shouldUseTheoretical) {
+                        s_final = s_normative;
+                        fcm_final = fcm_base;
+                    } else {
+                        s_final = reg_s;
+                        fcm_final = reg_fcm;
+                    }
+
+                    // Passo 4: Calcular o offset de segurança com os parâmetros finais
                     let maxDifference = 0;
                     realData.forEach(point => {
                         const meanPrediction = this.calculateResistance(fcm_final, s_final, point.days);
@@ -320,7 +362,8 @@
                     });
                     safetyOffset = maxDifference;
                 }
-                return { fcm: fcm_final, s: s_final, offset: safetyOffset, fcm_base };
+                
+                return { fcm: fcm_final, s: s_final, offset: safetyOffset, fcm_base, ruleApplied };
             }
         };
 
@@ -396,7 +439,30 @@
                         },
                         plugins: {
                             legend: { position: 'bottom', align: 'start', labels: { boxWidth: 20, padding: 15, font: { size: 10 } } },
-                            tooltip: { mode: 'index', intersect: false, callbacks: { label: (c) => `${c.dataset.label || ''}: ${parseFloat(c.parsed.y).toFixed(2)} MPa` } },
+                            tooltip: {
+                                mode: 'x', 
+                                intersect: false,
+                                callbacks: {
+                                    title: (tooltipItems) => {
+                                        if (tooltipItems.length > 0) {
+                                            const age = tooltipItems[0].parsed.x;
+                                            return `Idade: ${age.toFixed(1)} dias`;
+                                        }
+                                        return '';
+                                    },
+                                    label: (context) => {
+                                        let label = context.dataset.label || '';
+                                        if (context.parsed.y !== null) {
+                                            if (context.dataset.type === 'scatter') {
+                                                 label = `Ensaio (${context.parsed.x}d): ${context.parsed.y.toFixed(2)} MPa`;
+                                            } else {
+                                                 label = `${label}: ${context.parsed.y.toFixed(2)} MPa`;
+                                            }
+                                        }
+                                        return label;
+                                    }
+                                }
+                            },
                             annotation: { annotations: { fckLine: { type: 'line', yMin: 0, yMax: 0, borderColor: 'rgba(245, 158, 11, 1)', borderWidth: 2, borderDash: [10, 5], label: { content: '', enabled: true, position: 'end', backgroundColor: 'rgba(245, 158, 11, 0.8)', color: 'white', font: { size: 10 } } } } }
                         }
                     }
@@ -490,7 +556,7 @@
                 this.chartInstance.options.plugins.annotation.annotations.fckLine.yMax = fck;
                 this.chartInstance.options.plugins.annotation.annotations.fckLine.label.content = `fck = ${fck} MPa`;
                 
-                this.chartInstance.update();
+                this.chartInstance.update('none');
             },
 
             renderTable(state) {
@@ -505,11 +571,16 @@
             renderGuidance(state) {
                 const { analysisResults, analysisMode, realData } = state;
                 if (!analysisResults) return;
+
                 let message = '';
                 let bgColor = 'bg-gray-100';
                 let textColor = 'text-gray-800';
+
                 if (realData.length === 0) {
                     message = 'Adicione pelo menos um resultado de ensaio para iniciar a análise.';
+                } else if (analysisResults.ruleApplied) {
+                    message = `<b>Aviso de Análise:</b> A curva de referência teórica foi adotada. Motivo: os resultados dos ensaios superam a previsão teórica e o modelo teórico demonstrou um ajuste matemático superior ao da regressão para os dados fornecidos.`;
+                    bgColor = 'bg-purple-100'; textColor = 'text-purple-800';
                 } else {
                     let fcmMessagePart = `fcm ajustado: ${analysisResults.fcm.toFixed(1)} MPa`;
                     if (analysisResults.fcm < analysisResults.fcm_base) {
