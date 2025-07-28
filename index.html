@@ -279,7 +279,6 @@
                 let denominator = 0;
                 dataPoints.forEach(point => {
                     if (point.days > 0) {
-                        // *** CORREÇÃO: A variável correta é 'point.days', e não 't'.
                         const k = Math.exp(s * (1 - Math.sqrt(28 / point.days)));
                         numerator += point.mpa * k;
                         denominator += k * k;
@@ -293,6 +292,7 @@
                 let s_final = s_normative;
                 let fcm_final = fcm_base;
                 let safetyOffset = 0;
+
                 if (realData.length > 0) {
                     if (analysisMode === 'normative') {
                         s_final = s_normative;
@@ -306,6 +306,12 @@
                             fcm_final = this.findBestFitFcm(realData, s_final) || fcm_base;
                         }
                     }
+
+                    // *** ALTERAÇÃO SOLICITADA ***
+                    // Impõe um limite superior ao fcm_final, garantindo que ele não ultrapasse o fcm_base teórico.
+                    // Isso evita que a regressão superestime a resistência potencial do concreto.
+                    fcm_final = Math.min(fcm_final, fcm_base);
+
                     let maxDifference = 0;
                     realData.forEach(point => {
                         const meanPrediction = this.calculateResistance(fcm_final, s_final, point.days);
@@ -505,17 +511,26 @@
                 if (realData.length === 0) {
                     message = 'Adicione pelo menos um resultado de ensaio para iniciar a análise.';
                 } else {
+                    let fcmMessagePart = `fcm ajustado: ${analysisResults.fcm.toFixed(1)} MPa`;
+                    if (analysisResults.fcm < analysisResults.fcm_base) {
+                       fcmMessagePart = `fcm ajustado: ${analysisResults.fcm.toFixed(1)} MPa (limitado pelo fcm teórico de ${analysisResults.fcm_base.toFixed(1)} MPa)`;
+                    }
+
                     if (analysisMode === 'normative') {
-                        message = `<b>Análise Normativa (fcm ajustado: ${analysisResults.fcm.toFixed(1)} MPa):</b> A forma da curva segue o padrão NBR 6118. A altura foi ajustada aos seus dados.`;
+                        message = `<b>Análise Normativa (${fcmMessagePart}):</b> A forma da curva segue o padrão NBR 6118. A altura foi ajustada aos seus dados.`;
                         bgColor = 'bg-blue-100'; textColor = 'text-blue-800';
                     } else {
                          if (realData.length < 2) {
                             message = `<b>Diagnóstico Inicial (fcm estimado: ${analysisResults.fcm.toFixed(1)} MPa):</b> A previsão usa o 's' normativo. Adicione mais pontos para uma análise otimizada.`;
                             bgColor = 'bg-yellow-100'; textColor = 'text-yellow-800';
-                        } else {
+                         } else {
                             message = `<b>Análise Otimizada (fcm: ${analysisResults.fcm.toFixed(1)} MPa, s: ${analysisResults.s.toFixed(3)}):</b> A curva foi otimizada com base na tendência real dos seus dados.`;
                             bgColor = 'bg-green-100'; textColor = 'text-green-800';
-                        }
+                            if (analysisResults.fcm < analysisResults.fcm_base) {
+                                message = `<b>Análise Otimizada (fcm: ${analysisResults.fcm.toFixed(1)} MPa [limitado], s: ${analysisResults.s.toFixed(3)}):</b> A curva foi otimizada, mas o fcm foi limitado ao valor teórico de referência (${analysisResults.fcm_base.toFixed(1)} MPa).`;
+                                bgColor = 'bg-yellow-100'; textColor = 'text-yellow-800';
+                            }
+                         }
                     }
                 }
                 this.nodes.guidanceBox.className = `p-3 mb-4 text-sm rounded-lg ${bgColor} ${textColor}`;
@@ -588,39 +603,38 @@
                     `<b>mais lento</b> (s=${s.toFixed(3)}) que o normativo (s=${s_normative.toFixed(3)}). Esta tendência pode ser causada por cimentos com adições (CP II, III, IV), aditivos retardadores ou baixas temperaturas de cura.` :
                     `<b>equivalente</b> (s=${s.toFixed(3)}) ao normativo (s=${s_normative.toFixed(3)}), seguindo a curva de referência para o cimento especificado.`;
 
-                // *** CORREÇÃO: Comparar 'fcm' e 'fcm_base' como números, não como strings.
                 const fcm_comparison_text = fcm < fcm_base ?
                     `<b>inferior</b> (fcm,real = ${fcm.toFixed(1)} MPa) ao potencial teórico do traço (fcm,teórico = ${fcm_base.toFixed(1)} MPa). Esta é a principal causa para o baixo desempenho final e geralmente está associada a uma relação água/cimento (a/c) maior que a especificada ou a um consumo de cimento insuficiente.` :
                     `<b>compatível ou superior</b> (fcm,real = ${fcm.toFixed(1)} MPa) ao potencial teórico (fcm,teórico = ${fcm_base.toFixed(1)} MPa), indicando que a dosagem dos materiais (cimento, agregados, água) está adequada para atingir a resistência de referência.`;
 
                 performance = `<h4 class="font-semibold mt-4">Análise de Desempenho e Correlações</h4>
-                               <p>A análise da curva característica do concreto, baseada nos ensaios, revela os seguintes comportamentos quando comparada à curva teórica de referência:</p>
-                               <ul class="list-disc list-inside space-y-1 mt-2">
-                                   <li><b>Velocidade de Ganho de Resistência (Parâmetro 's'):</b> O ganho de resistência está ocorrendo de forma ${s_comparison_text}</li>
-                                   <li><b>Resistência Potencial Média (Parâmetro 'fcm'):</b> A resistência potencial do concreto em si é ${fcm_comparison_text}</li>
-                               </ul>`;
+                                <p>A análise da curva característica do concreto, baseada nos ensaios, revela os seguintes comportamentos quando comparada à curva teórica de referência:</p>
+                                <ul class="list-disc list-inside space-y-1 mt-2">
+                                     <li><b>Velocidade de Ganho de Resistência (Parâmetro 's'):</b> O ganho de resistência está ocorrendo de forma ${s_comparison_text}</li>
+                                     <li><b>Resistência Potencial Média (Parâmetro 'fcm'):</b> A resistência potencial do concreto em si é ${fcm_comparison_text}</li>
+                                </ul>`;
 
                 // 3. Causas e Recomendações
                 if (fck_est_28 < fck) {
                     causes = `<h4 class="font-semibold mt-4">Possíveis Causas para o Baixo Desempenho:</h4>
-                              <ul class="list-disc list-inside space-y-1 mt-2">
-                                  <li><b>Fator Principal (ligado ao fcm baixo):</b> Relação água/cimento (a/c) elevada; consumo de cimento abaixo do especificado; erro na pesagem dos materiais; qualidade dos agregados (impurezas, granulometria inadequada).</li>
-                                  <li><b>Fatores Secundários (influenciam 's' e fcm):</b> Qualidade e tipo do cimento; temperatura ambiente; processo de cura inadequado (falta de umidade); falhas no processo de execução (mistura, transporte, lançamento, adensamento).</li>
-                                  <li><b>Fatores de Ensaio:</b> Não conformidades na moldagem, transporte, cura e rompimento dos corpos de prova (NBR 5738 e NBR 5739).</li>
-                              </ul>`;
+                                <ul class="list-disc list-inside space-y-1 mt-2">
+                                     <li><b>Fator Principal (ligado ao fcm baixo):</b> Relação água/cimento (a/c) elevada; consumo de cimento abaixo do especificado; erro na pesagem dos materiais; qualidade dos agregados (impurezas, granulometria inadequada).</li>
+                                     <li><b>Fatores Secundários (influenciam 's' e fcm):</b> Qualidade e tipo do cimento; temperatura ambiente; processo de cura inadequado (falta de umidade); falhas no processo de execução (mistura, transporte, lançamento, adensamento).</li>
+                                     <li><b>Fatores de Ensaio:</b> Não conformidades na moldagem, transporte, cura e rompimento dos corpos de prova (NBR 5738 e NBR 5739).</li>
+                                </ul>`;
                     recommendations = `<h4 class="font-semibold mt-4">Recomendações (ABNT NBR 12655):</h4>
-                                       <ul class="list-disc list-inside space-y-1 mt-2">
-                                           <li><b>Ação Imediata:</b> Verificar os registros de dosagem (notas de remessa) e os relatórios de controle de qualidade da central de concreto para o lote em questão.</li>
-                                           <li><b>Investigação:</b> Inspecionar as condições de cura aplicadas na estrutura e continuar o monitoramento com ensaios em idades futuras (ex: 56 dias) para confirmar a tendência da curva.</li>
-                                           <li><b>Análise Estrutural:</b> Comunicar o projetista estrutural. Caso a não conformidade se confirme, ele deverá avaliar a necessidade de ensaios complementares (esclerometria, ultrassom, extração de testemunhos - NBR 7680) e definir as implicações para a segurança e durabilidade da estrutura.</li>
-                                       </ul>`;
+                                        <ul class="list-disc list-inside space-y-1 mt-2">
+                                             <li><b>Ação Imediata:</b> Verificar os registros de dosagem (notas de remessa) e os relatórios de controle de qualidade da central de concreto para o lote em questão.</li>
+                                             <li><b>Investigação:</b> Inspecionar as condições de cura aplicadas na estrutura e continuar o monitoramento com ensaios em idades futuras (ex: 56 dias) para confirmar a tendência da curva.</li>
+                                             <li><b>Análise Estrutural:</b> Comunicar o projetista estrutural. Caso a não conformidade se confirme, ele deverá avaliar a necessidade de ensaios complementares (esclerometria, ultrassom, extração de testemunhos - NBR 7680) e definir as implicações para a segurança e durabilidade da estrutura.</li>
+                                        </ul>`;
                 } else {
                     recommendations = `<h4 class="font-semibold mt-4">Recomendações:</h4>
-                                       <ul class="list-disc list-inside space-y-1 mt-2">
-                                           <li>Manter o plano de controle tecnológico e os procedimentos de execução que levaram ao bom resultado.</li>
-                                           <li>O desempenho satisfatório indica que a dosagem, os materiais e os processos de execução estão alinhados com as premissas de projeto.</li>
-                                           <li>Considerar a otimização do traço em futuras concretagens, caso o desempenho seja consistentemente superior ao necessário, visando a redução de custos sem comprometer a segurança.</li>
-                                       </ul>`;
+                                        <ul class="list-disc list-inside space-y-1 mt-2">
+                                             <li>Manter o plano de controle tecnológico e os procedimentos de execução que levaram ao bom resultado.</li>
+                                             <li>O desempenho satisfatório indica que a dosagem, os materiais e os processos de execução estão alinhados com as premissas de projeto.</li>
+                                             <li>Considerar a otimização do traço em futuras concretagens, caso o desempenho seja consistentemente superior ao necessário, visando a redução de custos sem comprometer a segurança.</li>
+                                        </ul>`;
                 }
                 this.nodes.reportContent.innerHTML = `${diagnosis}${performance}${causes}${recommendations}`;
             },
@@ -713,7 +727,6 @@
                     doc.setFont('helvetica', 'bold');
                     doc.text("Equações Aplicadas", 14, chartBottomY + 10);
                     
-                    // *** CORREÇÃO: Usar a sintaxe "28/t" em vez de "\frac{28}{t}" para evitar o bug de renderização.
                     const th_eq_string = `f_{cm,ref}(t) = ${analysisResults.fcm_base.toFixed(2)} \\cdot e^{\\left[${s_normative.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]}`;
                     const ch_eq_string = `f_{ck,est}(t) = \\left( ${analysisResults.fcm.toFixed(2)} \\cdot e^{\\left[${analysisResults.s.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]} \\right) - ${analysisResults.offset.toFixed(2)}`;
 
