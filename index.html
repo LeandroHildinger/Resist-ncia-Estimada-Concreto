@@ -290,34 +290,31 @@
                 const { fck, sd, s_normative, realData, analysisMode } = state;
                 const fcm_base = fck + 1.65 * sd;
                 
-                // *** CORREÇÃO: Inicializar variáveis com valores padrão para garantir robustez.
                 let s_final = s_normative;
                 let fcm_final = fcm_base;
                 let safetyOffset = 0;
                 let ruleApplied = false;
 
                 if (realData.length > 0) {
-                    // Passo 1: Calcular os parâmetros da regressão otimizada
                     let reg_s = s_normative;
                     let reg_fcm = fcm_base;
 
                     if (analysisMode === 'normative') {
                         reg_fcm = this.findBestFitFcm(realData, reg_s) || fcm_base;
-                    } else { // 'adjusted' mode
+                    } else { 
                         if (realData.length > 1) {
                             const bestFit = this.findBestFitParameters(realData);
                             if (bestFit) { 
                                 reg_s = bestFit.s; 
                                 reg_fcm = bestFit.fcm; 
                             }
-                        } else { // Apenas 1 ponto de dado
+                        } else { 
                             reg_fcm = this.findBestFitFcm(realData, reg_s) || fcm_base;
                         }
                     }
                     
                     reg_fcm = Math.min(reg_fcm, fcm_base);
 
-                    // Passo 2: Verificar se a curva teórica deve ser usada no lugar da regressão
                     let shouldUseTheoretical = false;
                     if (realData.length > 1 && analysisMode === 'adjusted') {
                         let isRefCurveBelowAllPoints = true;
@@ -344,7 +341,6 @@
                         }
                     }
                     
-                    // Passo 3: Definir os parâmetros finais com base na regra
                     if (shouldUseTheoretical) {
                         s_final = s_normative;
                         fcm_final = fcm_base;
@@ -353,7 +349,6 @@
                         fcm_final = reg_fcm;
                     }
 
-                    // Passo 4: Calcular o offset de segurança com os parâmetros finais
                     let maxDifference = 0;
                     realData.forEach(point => {
                         const meanPrediction = this.calculateResistance(fcm_final, s_final, point.days);
