@@ -148,7 +148,6 @@
                             Adicionar
                         </button>
                         
-                        <!-- Container para o botão de importação e o tooltip -->
                         <div class="w-full relative">
                             <button id="importCsvBtn" class="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition duration-150 ease-in-out text-sm font-medium pr-8 text-center">
                                 Importar CSV
@@ -171,6 +170,7 @@
                 <div class="mt-2">
                     <h2 class="text-lg font-semibold border-b pb-2 mb-4">Resultados e Ações</h2>
                     <div id="guidanceBox" class="p-3 mb-4 text-sm rounded-lg"></div>
+                    <div id="trendGuidanceBox" class="hidden"></div>
                     <div class="space-y-2 p-4 bg-indigo-50 rounded-lg">
                         <div>
                             <label for="predictionDays" class="block text-sm font-medium text-indigo-800">Calcular fck,est para:</label>
@@ -182,6 +182,10 @@
                         <div>
                             <label class="block text-sm font-medium text-indigo-800">Resistência Característica Estimada</label>
                             <div id="predictedResistance" class="mt-1 text-xl font-bold text-red-700">-- MPa</div>
+                        </div>
+                        <div id="predictedTrendResistanceContainer" class="hidden pt-2 border-t border-indigo-200">
+                            <label class="block text-sm font-medium text-green-800">Resistência de Tendência (fck,est,livre)</label>
+                            <div id="predictedTrendResistance" class="mt-1 text-lg font-bold text-green-700">-- MPa</div>
                         </div>
                     </div>
                     <div class="flex flex-col gap-2 mt-4">
@@ -207,6 +211,10 @@
                     <h3 class="font-semibold text-gray-700">Curva Característica (Estimada)</h3>
                     <div id="characteristicEquation" class="mt-2 p-2 bg-gray-50 rounded"></div>
                 </div>
+                <div id="trendEquationContainer" class="hidden">
+                    <h3 class="font-semibold text-gray-700">Curva de Tendência (Livre)</h3>
+                    <div id="trendEquation" class="mt-2 p-2 bg-gray-50 rounded"></div>
+                </div>
             </div>
         </div>
 
@@ -229,7 +237,6 @@
     <script>
     document.addEventListener('DOMContentLoaded', () => {
 
-        // --- 1. MÓDULO DE CÁLCULOS (LÓGICA PURA) ---
         const Calculator = {
             validateInput(value, name, min = -Infinity, max = Infinity) {
                 const numValue = parseFloat(value);
@@ -294,46 +301,59 @@
                 let fcm_final = fcm_base;
                 let safetyOffset = 0;
                 let ruleApplied = false;
+                
+                let unconstrainedFcm = fcm_base;
+                let unconstrainedS = s_normative;
+                let unconstrainedOffset = 0;
+                let showUnconstrainedCurve = false;
+                let tendencySuperiority = 0;
 
                 if (realData.length > 0) {
-                    let reg_s = s_normative;
-                    let reg_fcm = fcm_base;
-
-                    if (analysisMode === 'normative') {
-                        reg_fcm = this.findBestFitFcm(realData, reg_s) || fcm_base;
-                    } else { 
-                        if (realData.length > 1) {
-                            const bestFit = this.findBestFitParameters(realData);
-                            if (bestFit) { 
-                                reg_s = bestFit.s; 
-                                reg_fcm = bestFit.fcm; 
-                            }
-                        } else { 
-                            reg_fcm = this.findBestFitFcm(realData, reg_s) || fcm_base;
+                    if (analysisMode === 'adjusted' && realData.length > 1) {
+                        const bestFit = this.findBestFitParameters(realData);
+                        if (bestFit) { 
+                            unconstrainedS = bestFit.s; 
+                            unconstrainedFcm = bestFit.fcm; 
                         }
+                    } else if (analysisMode === 'normative' || realData.length <= 1) {
+                         unconstrainedFcm = this.findBestFitFcm(realData, unconstrainedS) || fcm_base;
                     }
-                    
-                    reg_fcm = Math.min(reg_fcm, fcm_base);
 
+                    if (unconstrainedFcm > fcm_base) {
+                        showUnconstrainedCurve = true;
+                        const fcm_ref_28 = this.calculateResistance(fcm_base, s_normative, 28);
+                        const fcm_unconstrained_28 = this.calculateResistance(unconstrainedFcm, unconstrainedS, 28);
+                        if (fcm_ref_28 > 0) {
+                            tendencySuperiority = ((fcm_unconstrained_28 / fcm_ref_28) - 1) * 100;
+                        }
+                        let maxDiffUnconstrained = 0;
+                        realData.forEach(point => {
+                            const pred = this.calculateResistance(unconstrainedFcm, unconstrainedS, point.days);
+                            const diff = pred - point.mpa;
+                            if (diff > maxDiffUnconstrained) maxDiffUnconstrained = diff;
+                        });
+                        unconstrainedOffset = maxDiffUnconstrained;
+                    }
+
+                    let reg_fcm_limited = Math.min(unconstrainedFcm, fcm_base);
+                    let reg_s_final = unconstrainedS;
+                    
                     let shouldUseTheoretical = false;
                     if (realData.length > 1 && analysisMode === 'adjusted') {
                         let isRefCurveBelowAllPoints = true;
                         let sse_ref = 0;
                         realData.forEach(point => {
                             const predicted_ref = this.calculateResistance(fcm_base, s_normative, point.days);
-                            if (point.mpa < predicted_ref) {
-                                isRefCurveBelowAllPoints = false;
-                            }
+                            if (point.mpa < predicted_ref) { isRefCurveBelowAllPoints = false; }
                             sse_ref += Math.pow(point.mpa - predicted_ref, 2);
                         });
 
                         if (isRefCurveBelowAllPoints) {
                             let sse_reg = 0;
                             realData.forEach(point => {
-                                const predicted_reg = this.calculateResistance(reg_fcm, reg_s, point.days);
+                                const predicted_reg = this.calculateResistance(reg_fcm_limited, reg_s_final, point.days);
                                 sse_reg += Math.pow(point.mpa - predicted_reg, 2);
                             });
-
                             if (sse_ref < sse_reg) {
                                 shouldUseTheoretical = true;
                                 ruleApplied = true;
@@ -345,8 +365,8 @@
                         s_final = s_normative;
                         fcm_final = fcm_base;
                     } else {
-                        s_final = reg_s;
-                        fcm_final = reg_fcm;
+                        s_final = reg_s_final;
+                        fcm_final = reg_fcm_limited;
                     }
 
                     let maxDifference = 0;
@@ -358,11 +378,13 @@
                     safetyOffset = maxDifference;
                 }
                 
-                return { fcm: fcm_final, s: s_final, offset: safetyOffset, fcm_base, ruleApplied };
+                return { 
+                    fcm: fcm_final, s: s_final, offset: safetyOffset, fcm_base, ruleApplied,
+                    showUnconstrainedCurve, unconstrainedFcm, unconstrainedS, unconstrainedOffset, tendencySuperiority
+                };
             }
         };
 
-        // --- 2. APLICAÇÃO PRINCIPAL (CONTROLADOR + STORE + RENDERER) ---
         const App = {
             store: {
                 state: {},
@@ -388,10 +410,15 @@
                     addPointBtn: document.getElementById('addPointBtn'),
                     predictionDays: document.getElementById('predictionDays'),
                     predictedResistanceDisplay: document.getElementById('predictedResistance'),
+                    predictedTrendResistanceContainer: document.getElementById('predictedTrendResistanceContainer'),
+                    predictedTrendResistance: document.getElementById('predictedTrendResistance'),
                     guidanceBox: document.getElementById('guidanceBox'),
+                    trendGuidanceBox: document.getElementById('trendGuidanceBox'),
                     equationsSection: document.getElementById('equationsSection'),
                     theoreticalEquationDiv: document.getElementById('theoreticalEquation'),
                     characteristicEquationDiv: document.getElementById('characteristicEquation'),
+                    trendEquationContainer: document.getElementById('trendEquationContainer'),
+                    trendEquation: document.getElementById('trendEquation'),
                     generateReportBtn: document.getElementById('generateReportBtn'),
                     reportModal: document.getElementById('reportModal'),
                     reportContent: document.getElementById('reportContent'),
@@ -423,8 +450,9 @@
                     type: 'line',
                     data: { datasets: [
                         { label: 'Referência', data: [], borderColor: 'rgba(59, 130, 246, 0.7)', borderWidth: 2, pointRadius: 0, tension: 0.4, fill: false, borderDash: [5, 5], cubicInterpolationMode: 'monotone' },
-                        { label: 'Curva Característica Estimada', data: [], borderColor: 'rgba(220, 38, 38, 1)', borderWidth: 3, pointRadius: 0, tension: 0.4, fill: false, cubicInterpolationMode: 'monotone' },
-                        { type: 'scatter', label: 'Resultados Reais (Ensaio)', data: [], backgroundColor: 'rgba(239, 68, 68, 1)', borderColor: 'rgba(220, 38, 38, 1)', pointRadius: 6, pointHoverRadius: 8, z: 10 }
+                        { label: 'Curva Característica (Limitada)', data: [], borderColor: 'rgba(220, 38, 38, 1)', borderWidth: 3, pointRadius: 0, tension: 0.4, fill: false, cubicInterpolationMode: 'monotone' },
+                        { type: 'scatter', label: 'Resultados Reais (Ensaio)', data: [], backgroundColor: 'rgba(239, 68, 68, 1)', borderColor: 'rgba(220, 38, 38, 1)', pointRadius: 6, pointHoverRadius: 8, z: 10 },
+                        { label: 'Tendência Livre (Não Limitada)', data: [], borderColor: 'rgba(34, 197, 94, 0.8)', borderWidth: 3, pointRadius: 0, tension: 0.4, fill: false, borderDash: [6, 3], hidden: true, cubicInterpolationMode: 'monotone' }
                     ]},
                     options: {
                         responsive: true, maintainAspectRatio: false,
@@ -547,6 +575,12 @@
                 this.chartInstance.data.datasets[1].data = characteristicCurve;
                 this.chartInstance.data.datasets[2].data = realData.map(p => ({ x: p.days, y: p.mpa }));
                 
+                const unconstrainedCurve = analysisResults.showUnconstrainedCurve 
+                    ? Calculator.generateCurveData(analysisResults.unconstrainedFcm, analysisResults.unconstrainedS).map(p => ({ x: p.x, y: Math.max(0, p.y - analysisResults.unconstrainedOffset) }))
+                    : [];
+                this.chartInstance.data.datasets[3].data = unconstrainedCurve;
+                this.chartInstance.data.datasets[3].hidden = !analysisResults.showUnconstrainedCurve;
+
                 this.chartInstance.options.plugins.annotation.annotations.fckLine.yMin = fck;
                 this.chartInstance.options.plugins.annotation.annotations.fckLine.yMax = fck;
                 this.chartInstance.options.plugins.annotation.annotations.fckLine.label.content = `fck = ${fck} MPa`;
@@ -578,8 +612,8 @@
                     bgColor = 'bg-purple-100'; textColor = 'text-purple-800';
                 } else {
                     let fcmMessagePart = `fcm ajustado: ${analysisResults.fcm.toFixed(1)} MPa`;
-                    if (analysisResults.fcm < analysisResults.fcm_base) {
-                       fcmMessagePart = `fcm ajustado: ${analysisResults.fcm.toFixed(1)} MPa (limitado pelo fcm teórico de ${analysisResults.fcm_base.toFixed(1)} MPa)`;
+                    if (analysisResults.fcm < analysisResults.fcm_base && analysisResults.showUnconstrainedCurve) {
+                       fcmMessagePart = `fcm: ${analysisResults.fcm.toFixed(1)} MPa (limitado)`;
                     }
 
                     if (analysisMode === 'normative') {
@@ -590,17 +624,24 @@
                             message = `<b>Diagnóstico Inicial (fcm estimado: ${analysisResults.fcm.toFixed(1)} MPa):</b> A previsão usa o 's' normativo. Adicione mais pontos para uma análise otimizada.`;
                             bgColor = 'bg-yellow-100'; textColor = 'text-yellow-800';
                          } else {
-                            message = `<b>Análise Otimizada (fcm: ${analysisResults.fcm.toFixed(1)} MPa, s: ${analysisResults.s.toFixed(3)}):</b> A curva foi otimizada com base na tendência real dos seus dados.`;
+                            message = `<b>Análise Otimizada (${fcmMessagePart}, s: ${analysisResults.s.toFixed(3)}):</b> A curva foi otimizada com base na tendência real dos seus dados.`;
                             bgColor = 'bg-green-100'; textColor = 'text-green-800';
-                            if (analysisResults.fcm < analysisResults.fcm_base) {
-                                message = `<b>Análise Otimizada (fcm: ${analysisResults.fcm.toFixed(1)} MPa [limitado], s: ${analysisResults.s.toFixed(3)}):</b> A curva foi otimizada, mas o fcm foi limitado ao valor teórico de referência (${analysisResults.fcm_base.toFixed(1)} MPa).`;
+                            if (analysisResults.showUnconstrainedCurve) {
                                 bgColor = 'bg-yellow-100'; textColor = 'text-yellow-800';
                             }
                          }
                     }
                 }
-                this.nodes.guidanceBox.className = `p-3 mb-4 text-sm rounded-lg ${bgColor} ${textColor}`;
+                this.nodes.guidanceBox.className = `p-3 mb-2 text-sm rounded-lg ${bgColor} ${textColor}`;
                 this.nodes.guidanceBox.innerHTML = message;
+
+                if (analysisResults.showUnconstrainedCurve) {
+                    this.nodes.trendGuidanceBox.innerHTML = `<b>Tendência Superior:</b> A regressão livre indica um potencial de resistência <b>${analysisResults.tendencySuperiority.toFixed(1)}% maior</b> que a referência aos 28 dias. A Curva Característica foi limitada por segurança.`;
+                    this.nodes.trendGuidanceBox.className = 'p-3 mb-4 text-sm rounded-lg bg-teal-100 text-teal-800';
+                    this.nodes.trendGuidanceBox.classList.remove('hidden');
+                } else {
+                    this.nodes.trendGuidanceBox.classList.add('hidden');
+                }
             },
 
             renderEquations(state) {
@@ -614,17 +655,36 @@
                 const ch_eq = `f_{ck,est}(t) = \\left( ${analysisResults.fcm.toFixed(2)} \\cdot e^{\\left[${analysisResults.s.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]} \\right) - ${analysisResults.offset.toFixed(2)}`;
                 katex.render(th_eq, this.nodes.theoreticalEquationDiv, { throwOnError: false });
                 katex.render(ch_eq, this.nodes.characteristicEquationDiv, { throwOnError: false });
+
+                if (analysisResults.showUnconstrainedCurve) {
+                    const tr_eq = `f_{ck,tend}(t) = \\left( ${analysisResults.unconstrainedFcm.toFixed(2)} \\cdot e^{\\left[${analysisResults.unconstrainedS.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]} \\right) - ${analysisResults.unconstrainedOffset.toFixed(2)}`;
+                    katex.render(tr_eq, this.nodes.trendEquation, { throwOnError: false });
+                    this.nodes.trendEquationContainer.classList.remove('hidden');
+                } else {
+                    this.nodes.trendEquationContainer.classList.add('hidden');
+                }
             },
 
             renderPrediction(state) {
                 const { analysisResults, predictionDays } = state;
                 if (!analysisResults || isNaN(predictionDays) || predictionDays <= 0) {
                     this.nodes.predictedResistanceDisplay.innerHTML = '-- MPa';
+                    this.nodes.predictedTrendResistanceContainer.classList.add('hidden');
                     return;
                 }
+                
                 const meanResistance = Calculator.calculateResistance(analysisResults.fcm, analysisResults.s, predictionDays);
                 const characteristicResistance = Math.max(0, meanResistance - analysisResults.offset);
                 this.nodes.predictedResistanceDisplay.innerHTML = `${characteristicResistance.toFixed(2)} MPa`;
+
+                if (analysisResults.showUnconstrainedCurve) {
+                    const trendMeanResistance = Calculator.calculateResistance(analysisResults.unconstrainedFcm, analysisResults.unconstrainedS, predictionDays);
+                    const trendCharacteristicResistance = Math.max(0, trendMeanResistance - analysisResults.unconstrainedOffset);
+                    this.nodes.predictedTrendResistance.innerHTML = `${trendCharacteristicResistance.toFixed(2)} MPa`;
+                    this.nodes.predictedTrendResistanceContainer.classList.remove('hidden');
+                } else {
+                    this.nodes.predictedTrendResistanceContainer.classList.add('hidden');
+                }
             },
 
             bindModalEvents() {
@@ -655,51 +715,47 @@
 
                 let diagnosis = '', performance = '', causes = '', recommendations = '';
 
-                // 1. Diagnóstico Geral
                 if (fck_est_28 >= fck) {
                     diagnosis = `<div class="p-3 text-green-800 bg-green-100 rounded-lg"><b>Diagnóstico Geral: Satisfatório.</b> O concreto demonstra um desempenho compatível com o esperado, e a projeção indica que a resistência de projeto (fck = ${fck} MPa) será atingida aos 28 dias (fck,est = ${fck_est_28.toFixed(1)} MPa).</div>`;
                 } else {
                     diagnosis = `<div class="p-3 text-yellow-800 bg-yellow-100 rounded-lg"><b>Diagnóstico Geral: Alerta.</b> O concreto apresenta desempenho abaixo do esperado. A projeção indica que a resistência de projeto (fck = ${fck} MPa) <b>não</b> será atingida aos 28 dias (fck,est = ${fck_est_28.toFixed(1)} MPa).</div>`;
                 }
 
-                // 2. Análise de Desempenho com Correlações
                 const s_comparison_text = s.toFixed(3) < s_normative.toFixed(3) ?
-                    `<b>mais rápido</b> (s=${s.toFixed(3)}) que o normativo (s=${s_normative.toFixed(3)}). Isso indica uma hidratação acelerada, possivelmente devido ao tipo de cimento (ex: CP V-ARI), aditivos aceleradores ou condições de cura com temperatura elevada.` :
+                    `<b>mais rápido</b> (s=${s.toFixed(3)}) que o normativo (s=${s_normative.toFixed(3)}).` :
                     s.toFixed(3) > s_normative.toFixed(3) ?
-                    `<b>mais lento</b> (s=${s.toFixed(3)}) que o normativo (s=${s_normative.toFixed(3)}). Esta tendência pode ser causada por cimentos com adições (CP II, III, IV), aditivos retardadores ou baixas temperaturas de cura.` :
-                    `<b>equivalente</b> (s=${s.toFixed(3)}) ao normativo (s=${s_normative.toFixed(3)}), seguindo a curva de referência para o cimento especificado.`;
+                    `<b>mais lento</b> (s=${s.toFixed(3)}) que o normativo (s=${s_normative.toFixed(3)}).` :
+                    `<b>equivalente</b> (s=${s.toFixed(3)}) ao normativo (s=${s_normative.toFixed(3)}).`;
 
                 const fcm_comparison_text = fcm < fcm_base ?
-                    `<b>inferior</b> (fcm,real = ${fcm.toFixed(1)} MPa) ao potencial teórico do traço (fcm,teórico = ${fcm_base.toFixed(1)} MPa). Esta é a principal causa para o baixo desempenho final e geralmente está associada a uma relação água/cimento (a/c) maior que a especificada ou a um consumo de cimento insuficiente.` :
-                    `<b>compatível ou superior</b> (fcm,real = ${fcm.toFixed(1)} MPa) ao potencial teórico (fcm,teórico = ${fcm_base.toFixed(1)} MPa), indicando que a dosagem dos materiais (cimento, agregados, água) está adequada para atingir a resistência de referência.`;
+                    `<b>inferior</b> (fcm,real = ${fcm.toFixed(1)} MPa) ao potencial teórico do traço (fcm,teórico = ${fcm_base.toFixed(1)} MPa).` :
+                    `<b>compatível ou superior</b> (fcm,real = ${fcm.toFixed(1)} MPa) ao potencial teórico (fcm,teórico = ${fcm_base.toFixed(1)} MPa).`;
 
                 performance = `<h4 class="font-semibold mt-4">Análise de Desempenho e Correlações</h4>
-                                <p>A análise da curva característica do concreto, baseada nos ensaios, revela os seguintes comportamentos quando comparada à curva teórica de referência:</p>
+                                <p>A análise da curva característica do concreto, baseada nos ensaios, revela os seguintes comportamentos:</p>
                                 <ul class="list-disc list-inside space-y-1 mt-2">
                                      <li><b>Velocidade de Ganho de Resistência (Parâmetro 's'):</b> O ganho de resistência está ocorrendo de forma ${s_comparison_text}</li>
                                      <li><b>Resistência Potencial Média (Parâmetro 'fcm'):</b> A resistência potencial do concreto em si é ${fcm_comparison_text}</li>
                                 </ul>`;
 
-                // 3. Causas e Recomendações
                 if (fck_est_28 < fck) {
                     causes = `<h4 class="font-semibold mt-4">Possíveis Causas para o Baixo Desempenho:</h4>
                                 <ul class="list-disc list-inside space-y-1 mt-2">
-                                     <li><b>Fator Principal (ligado ao fcm baixo):</b> Relação água/cimento (a/c) elevada; consumo de cimento abaixo do especificado; erro na pesagem dos materiais; qualidade dos agregados (impurezas, granulometria inadequada).</li>
-                                     <li><b>Fatores Secundários (influenciam 's' e fcm):</b> Qualidade e tipo do cimento; temperatura ambiente; processo de cura inadequado (falta de umidade); falhas no processo de execução (mistura, transporte, lançamento, adensamento).</li>
-                                     <li><b>Fatores de Ensaio:</b> Não conformidades na moldagem, transporte, cura e rompimento dos corpos de prova (NBR 5738 e NBR 5739).</li>
+                                     <li><b>Fator Principal (ligado ao fcm baixo):</b> Relação água/cimento (a/c) elevada; consumo de cimento abaixo do especificado; erro na pesagem dos materiais; qualidade dos agregados.</li>
+                                     <li><b>Fatores Secundários (influenciam 's' e fcm):</b> Qualidade do cimento; temperatura; processo de cura inadequado; falhas no processo de execução.</li>
+                                     <li><b>Fatores de Ensaio:</b> Não conformidades na moldagem, cura e rompimento dos corpos de prova (NBR 5738 e NBR 5739).</li>
                                 </ul>`;
                     recommendations = `<h4 class="font-semibold mt-4">Recomendações (ABNT NBR 12655):</h4>
                                         <ul class="list-disc list-inside space-y-1 mt-2">
-                                             <li><b>Ação Imediata:</b> Verificar os registros de dosagem (notas de remessa) e os relatórios de controle de qualidade da central de concreto para o lote em questão.</li>
-                                             <li><b>Investigação:</b> Inspecionar as condições de cura aplicadas na estrutura e continuar o monitoramento com ensaios em idades futuras (ex: 56 dias) para confirmar a tendência da curva.</li>
-                                             <li><b>Análise Estrutural:</b> Comunicar o projetista estrutural. Caso a não conformidade se confirme, ele deverá avaliar a necessidade de ensaios complementares (esclerometria, ultrassom, extração de testemunhos - NBR 7680) e definir as implicações para a segurança e durabilidade da estrutura.</li>
+                                             <li><b>Ação Imediata:</b> Verificar os registros de dosagem e os relatórios de controle de qualidade da central de concreto.</li>
+                                             <li><b>Investigação:</b> Inspecionar as condições de cura na estrutura e continuar o monitoramento com ensaios em idades futuras.</li>
+                                             <li><b>Análise Estrutural:</b> Comunicar o projetista estrutural para avaliar a necessidade de ensaios complementares e definir as implicações para a segurança e durabilidade.</li>
                                         </ul>`;
                 } else {
                     recommendations = `<h4 class="font-semibold mt-4">Recomendações:</h4>
                                         <ul class="list-disc list-inside space-y-1 mt-2">
                                              <li>Manter o plano de controle tecnológico e os procedimentos de execução que levaram ao bom resultado.</li>
                                              <li>O desempenho satisfatório indica que a dosagem, os materiais e os processos de execução estão alinhados com as premissas de projeto.</li>
-                                             <li>Considerar a otimização do traço em futuras concretagens, caso o desempenho seja consistentemente superior ao necessário, visando a redução de custos sem comprometer a segurança.</li>
                                         </ul>`;
                 }
                 this.nodes.reportContent.innerHTML = `${diagnosis}${performance}${causes}${recommendations}`;
@@ -712,7 +768,7 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const text = e.target.result;
-                    const rows = text.split('\n').slice(1); // Ignora cabeçalho
+                    const rows = text.split('\n').slice(1);
                     const newPoints = rows.map(row => {
                         const [days, mpa] = row.split(/[,;]/);
                         const dayNum = parseFloat(days);
@@ -721,7 +777,7 @@
                             return { days: dayNum, mpa: mpaNum };
                         }
                         return null;
-                    }).filter(Boolean); // Remove linhas inválidas
+                    }).filter(Boolean);
                     
                     if (newPoints.length > 0) {
                         this.store.commit('realData', [...this.store.getState().realData, ...newPoints]);
@@ -730,7 +786,7 @@
                     }
                 };
                 reader.readAsText(file);
-                event.target.value = ''; // Limpa o input para permitir re-upload do mesmo arquivo
+                event.target.value = '';
             },
             
             async handlePdfExport() {
@@ -748,7 +804,6 @@
                 this.nodes.exportPdfBtn.disabled = true;
 
                 try {
-                    // --- PÁGINA 1 ---
                     doc.setFontSize(18);
                     doc.text("Relatório de Análise Preditiva de Resistência", 105, 15, { align: 'center' });
 
@@ -797,9 +852,13 @@
                     const ch_eq_string = `f_{ck,est}(t) = \\left( ${analysisResults.fcm.toFixed(2)} \\cdot e^{\\left[${analysisResults.s.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]} \\right) - ${analysisResults.offset.toFixed(2)}`;
 
                     let currentY = await this.addKatexToPdf(doc, th_eq_string, 14, chartBottomY + 20, "Curva de Referência (Teórica):");
-                    await this.addKatexToPdf(doc, ch_eq_string, 14, currentY, "Curva Característica (Estimada):");
+                    currentY = await this.addKatexToPdf(doc, ch_eq_string, 14, currentY, "Curva Característica (Estimada):");
 
-                    // --- PÁGINA 2 ---
+                    if (analysisResults.showUnconstrainedCurve) {
+                        const tr_eq_string = `f_{ck,tend}(t) = \\left( ${analysisResults.unconstrainedFcm.toFixed(2)} \\cdot e^{\\left[${analysisResults.unconstrainedS.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]} \\right) - ${analysisResults.unconstrainedOffset.toFixed(2)}`;
+                        await this.addKatexToPdf(doc, tr_eq_string, 14, currentY, "Curva de Tendência (Livre):");
+                    }
+
                     doc.addPage();
                     doc.setFontSize(16);
                     doc.text("Diagnóstico Técnico e Recomendações", 105, 15, { align: 'center' });
@@ -818,7 +877,6 @@
                 }
             },
 
-            // HELPER: Adiciona equação KaTeX como imagem no PDF
             async addKatexToPdf(doc, latexString, x, y, title) {
                 if (title) {
                     doc.setFont('helvetica', 'bold');
@@ -853,7 +911,6 @@
                 return y + imgHeight + 8;
             },
 
-            // HELPER: Adiciona conteúdo HTML formatado ao PDF
             async addHtmlToPdf(doc, htmlContent, startX, startY) {
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = htmlContent;
@@ -903,7 +960,7 @@
                              doc.text("•", startX, yPos - (itemText.length * 4.5));
                         }
                         yPos += 4;
-                    } else if (el.tagName === 'DIV') { // Diagnosis box
+                    } else if (el.tagName === 'DIV') {
                         doc.setFontSize(10);
                         doc.setFont('helvetica', 'normal');
                         const isSuccess = el.classList.contains('bg-green-100');
@@ -922,7 +979,6 @@
             }
         };
         
-        // --- INICIALIZAÇÃO DA APLICAÇÃO ---
         App.init();
     });
     </script>
