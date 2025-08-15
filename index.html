@@ -12,7 +12,7 @@
     <!-- Bibliotecas para Exportação PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
+        
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -23,7 +23,7 @@
         .katex { font-size: 1.1em; }
         .modal-overlay { transition: opacity 0.3s ease; }
         .modal-content { transition: transform 0.3s ease; }
-        
+                
         /* Estilos para Tooltip */
         .tooltip-container {
             position: relative;
@@ -78,12 +78,15 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
+            <!-- Coluna do Gráfico -->
             <div id="captureArea" class="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-lg h-auto">
                 <canvas id="resistanceChart" class="h-96 lg:h-auto"></canvas>
             </div>
 
+            <!-- Coluna de Controles -->
             <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg flex flex-col space-y-6">
                 
+                <!-- Seção de Parâmetros -->
                 <div>
                     <h2 class="text-lg font-semibold border-b pb-2 mb-4">Parâmetros da Análise</h2>
                     <div class="space-y-4">
@@ -108,15 +111,19 @@
                             </div>
                         </div>
                         <div>
-                            <label for="cementType" class="block text-sm font-medium text-gray-700">Tipo de Cimento (NBR 16697)</label>
+                            <label for="cementType" class="block text-sm font-medium text-gray-700">Tipo de Cimento (NBR 6118)</label>
                             <select id="cementType" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                                <option value="0.25">CP I (Comum)</option>
-                                <option value="0.23" selected>CP II-F (c/ Fíler)</option>
-                                <option value="0.20">CP II-E (c/ Escória)</option>
-                                <option value="0.28">CP II-Z (c/ Pozolana)</option>
-                                <option value="0.38">CP III / CP IV (Lento)</option>
-                                <option value="0.15">CP V-ARI (Rápido)</option>
+                                <option value="0.25" selected>CP I / CP II (Ganho Normal)</option>
+                                <option value="0.38">CP III / CP IV (Ganho Lento)</option>
+                                <option value="0.20">CP V-ARI (Ganho Rápido)</option>
+                                <option value="custom">Personalizado (Impor 's')</option>
                             </select>
+                        </div>
+                        <div id="customSContainer" class="hidden">
+                            <label for="customSInput" class="block text-sm font-medium text-gray-700">Coeficiente 's' Personalizado</label>
+                            <div class="mt-1 flex items-center">
+                                <input type="number" id="customSInput" step="0.01" min="0.05" max="0.6" value="0.25" class="w-full bg-gray-50 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            </div>
                         </div>
                          <div>
                             <label for="analysisMode" class="block text-sm font-medium text-gray-700">Modo de Análise da Curva</label>
@@ -128,6 +135,7 @@
                     </div>
                 </div>
 
+                <!-- Seção de Dados -->
                 <div class="flex-grow">
                     <h2 class="text-lg font-semibold border-b pb-2 mb-4">Resultados dos Ensaios</h2>
                     <div class="overflow-x-auto max-h-48">
@@ -140,6 +148,7 @@
                                 </tr>
                             </thead>
                             <tbody id="dataTableBody" class="bg-white">
+                                <!-- Linhas de dados serão inseridas aqui via JS -->
                             </tbody>
                         </table>
                     </div>
@@ -147,7 +156,7 @@
                         <button id="addPointBtn" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out text-sm font-medium">
                             Adicionar
                         </button>
-                        
+                                                
                         <div class="w-full relative">
                             <button id="importCsvBtn" class="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition duration-150 ease-in-out text-sm font-medium pr-8 text-center">
                                 Importar CSV
@@ -167,10 +176,21 @@
                     </div>
                 </div>
 
+                <!-- Seção de Resultados -->
                 <div class="mt-2">
                     <h2 class="text-lg font-semibold border-b pb-2 mb-4">Resultados e Ações</h2>
                     <div id="guidanceBox" class="p-3 mb-4 text-sm rounded-lg"></div>
+                    <!-- NOVO: Container para exclusão automática -->
+                    <div class="flex items-start gap-2 mb-2">
+                        <input type="checkbox" id="autoDropToggle" class="mt-1">
+                        <label for="autoDropToggle" class="text-sm text-gray-700">
+                            Excluir automaticamente, no <b>ajuste</b>, o ponto menos conservador de pares fora da banda
+                        </label>
+                    </div>
+                    <div id="excludedList" class="hidden text-xs text-gray-600 mb-4 p-2 bg-gray-100 rounded"></div>
+                    <div id="warningsBox" class="hidden space-y-2 mb-4"></div>
                     <div id="trendGuidanceBox" class="hidden"></div>
+                    <div id="delta28Box" class="hidden p-3 mb-4 text-sm rounded-lg"></div>
                     <div class="space-y-2 p-4 bg-indigo-50 rounded-lg">
                         <div>
                             <label for="predictionDays" class="block text-sm font-medium text-indigo-800">Calcular fck,est para:</label>
@@ -183,9 +203,13 @@
                             <label class="block text-sm font-medium text-indigo-800">Resistência Característica Estimada</label>
                             <div id="predictedResistance" class="mt-1 text-xl font-bold text-red-700">-- MPa</div>
                         </div>
-                        <div id="predictedTrendResistanceContainer" class="hidden pt-2 border-t border-indigo-200">
-                            <label class="block text-sm font-medium text-green-800">Resistência de Tendência (fck,est,livre)</label>
-                            <div id="predictedTrendResistance" class="mt-1 text-lg font-bold text-green-700">-- MPa</div>
+                        <div id="predictedPlausibleTrendResistanceContainer" class="hidden pt-2 border-t border-indigo-200">
+                            <label class="block text-sm font-medium text-green-800">Tendência Plausível (s restrito)</label>
+                            <div id="predictedPlausibleTrendResistance" class="mt-1 text-lg font-bold text-green-700">-- MPa</div>
+                        </div>
+                        <div id="predictedFreeTrendResistanceContainer" class="hidden pt-2 border-t border-indigo-200">
+                            <label class="block text-sm font-medium text-purple-800">Tendência Livre (s livre)</label>
+                            <div id="predictedFreeTrendResistance" class="mt-1 text-lg font-bold text-purple-700">-- MPa</div>
                         </div>
                     </div>
                     <div class="flex flex-col gap-2 mt-4">
@@ -200,6 +224,7 @@
             </div>
         </div>
 
+        <!-- Seção de Equações -->
         <div id="equationsSection" class="mt-8 bg-white p-4 sm:p-6 rounded-xl shadow-lg hidden">
             <h2 class="text-lg font-semibold border-b pb-2 mb-4">Equações Aplicadas</h2>
             <div class="space-y-4 text-sm">
@@ -211,9 +236,13 @@
                     <h3 class="font-semibold text-gray-700">Curva Característica (Estimada)</h3>
                     <div id="characteristicEquation" class="mt-2 p-2 bg-gray-50 rounded"></div>
                 </div>
-                <div id="trendEquationContainer" class="hidden">
-                    <h3 class="font-semibold text-gray-700">Curva de Tendência (Livre)</h3>
-                    <div id="trendEquation" class="mt-2 p-2 bg-gray-50 rounded"></div>
+                <div id="plausibleTrendEquationContainer" class="hidden">
+                    <h3 class="font-semibold text-gray-700">Curva de Tendência Plausível (s restrito)</h3>
+                    <div id="plausibleTrendEquation" class="mt-2 p-2 bg-gray-50 rounded"></div>
+                </div>
+                <div id="freeTrendEquationContainer" class="hidden">
+                    <h3 class="font-semibold text-gray-700">Curva de Tendência Livre (s livre)</h3>
+                    <div id="freeTrendEquation" class="mt-2 p-2 bg-gray-50 rounded"></div>
                 </div>
             </div>
         </div>
@@ -236,6 +265,75 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
+        
+        const Beta = {
+            beta1(t, s){ return Math.exp(s*(1 - Math.sqrt(28/t))); },
+            f28_from_point(mpa_t, t, s){ return mpa_t / this.beta1(t, s); }
+        };
+
+        const DataValidator = {
+            alphaConfig: [
+                {p1:2, p2:3, alpha:0.20, label:'3d/2d'},
+                {p1:3, p2:7, alpha:0.20, label:'7d/3d'},
+                {p1:7, p2:14, alpha:0.12, label:'14d/7d'},
+                {p1:14, p2:28, alpha:0.10, label:'28d/14d'}
+            ],
+
+            checkAll(dataPoints, s_normative) {
+                if (dataPoints.length < 2) return [];
+                const sortedData = [...dataPoints].sort((a, b) => a.days - b.days);
+                const monotonicityWarnings = this.checkMonotonicity(sortedData);
+                const ratioWarnings = this.checkRatios(sortedData, s_normative);
+                return [...monotonicityWarnings, ...ratioWarnings];
+            },
+
+            checkMonotonicity(sortedData) {
+                const warnings = [];
+                for (let i = 1; i < sortedData.length; i++) {
+                    if (sortedData[i].mpa < sortedData[i - 1].mpa) {
+                        warnings.push(`<b>Inconsistência de Monotonia:</b> A resistência aos ${sortedData[i].days} dias (${sortedData[i].mpa.toFixed(1)} MPa) é menor que a dos ${sortedData[i - 1].days} dias (${sortedData[i - 1].mpa.toFixed(1)} MPa).`);
+                    }
+                }
+                return warnings;
+            },
+            
+            checkRatios(sortedData, s_normative) {
+                const warnings = [];
+                const byDay = Object.fromEntries(sortedData.map(p => [p.days, p.mpa]));
+
+                this.alphaConfig.forEach(({p1,p2,alpha,label})=>{
+                    if(!(byDay[p1]>0 && byDay[p2]>0)) return;
+                    const r_obs = byDay[p2]/byDay[p1];
+                    const r_exp = Beta.beta1(p2, s_normative)/Beta.beta1(p1, s_normative);
+                    const low = r_exp*(1-alpha), high = r_exp*(1+alpha);
+                    if(r_obs<low || r_obs>high){
+                        warnings.push(`<b>Razão ${label} Incomum:</b> O valor de ${r_obs.toFixed(2)} está fora da banda dinâmica esperada (${low.toFixed(2)} a ${high.toFixed(2)}).`);
+                    }
+                });
+                return warnings;
+            },
+
+            suggestDropsForFit(sortedData, s_normative){
+                const drops = new Set();
+                const byDay = Object.fromEntries(sortedData.map(p => [p.days, p.mpa]));
+                this.alphaConfig.forEach(({p1,p2,alpha})=>{
+                    if(!(byDay[p1]>0 && byDay[p2]>0)) return;
+                    const r_obs = byDay[p2]/byDay[p1];
+                    const r_exp = Beta.beta1(p2, s_normative)/Beta.beta1(p1, s_normative);
+                    const low = r_exp*(1-alpha), high = r_exp*(1+alpha);
+                    if(r_obs<low || r_obs>high){
+                        const f28_1 = Beta.f28_from_point(byDay[p1], p1, s_normative);
+                        const f28_2 = Beta.f28_from_point(byDay[p2], p2, s_normative);
+                        if (Math.abs(f28_1 - f28_2)/Math.max(f28_1,f28_2) < 0.03){
+                            drops.add(Math.min(p1,p2)); 
+                        } else {
+                            drops.add(f28_1 > f28_2 ? p1 : p2);
+                        }
+                    }
+                });
+                return [...drops];
+            }
+        };
 
         const Calculator = {
             validateInput(value, name, min = -Infinity, max = Infinity) {
@@ -245,10 +343,12 @@
                 if (numValue > max) throw new Error(`Parâmetro "${name}" deve ser no máximo ${max}.`);
                 return numValue;
             },
+
             calculateResistance: (fcm, s, t) => {
                 if (t <= 0) return 0;
                 return fcm * Math.exp(s * (1 - Math.sqrt(28 / t)));
             },
+
             generateCurveData(fcm, s, maxDays = 90) {
                 const data = [];
                 for (let t = 1; t <= maxDays; t += 0.5) {
@@ -257,29 +357,37 @@
                 data.sort((a, b) => a.x - b.x);
                 return data;
             },
-            findBestFitParameters(dataPoints) {
-                if (dataPoints.length < 2) return null;
-                let bestS = null, bestFcm = null;
-                let minError = Infinity;
-                const maxMpa = Math.max(...dataPoints.map(p => p.mpa));
-                const fcmRangeStart = Math.max(1, maxMpa * 0.5);
-                const fcmRangeEnd = (maxMpa * 2) + 20;
-                const fcmStep = Math.max(0.1, (fcmRangeEnd - fcmRangeStart) / 100);
-                for (let fcm = fcmRangeStart; fcm <= fcmRangeEnd; fcm += fcmStep) {
-                    for (let s = 0.05; s <= 0.60; s += 0.005) {
-                        let currentError = 0;
-                        dataPoints.forEach(point => {
-                            currentError += Math.pow(point.mpa - this.calculateResistance(fcm, s, point.days), 2);
-                        });
-                        if (currentError < minError) {
-                            minError = currentError;
-                            bestS = s;
-                            bestFcm = fcm;
-                        }
-                    }
-                }
-                return { s: bestS, fcm: bestFcm };
+            
+            goldenSection(min, max, fn, tol=1e-4, maxIter=60){
+              const gr = (Math.sqrt(5)-1)/2;
+              let a=min, b=max, c=b-gr*(b-a), d=a+gr*(b-a);
+              let fc=fn(c), fd=fn(d);
+              for(let i=0;i<maxIter && Math.abs(b-a)>tol;i++){
+                if(fc>fd){ a=c; c=d; fc=fd; d=a+gr*(b-a); fd=fn(d); }
+                else     { b=d; d=c; fd=fc; c=b-gr*(b-a); fc=fn(c); }
+              }
+              return (a+b)/2;
             },
+
+            findBestFitParameters(dataPoints, s_min, s_max){
+                if (dataPoints.length < 2) return null;
+                const sse = (s) => {
+                    const fcm = this.findBestFitFcm(dataPoints, s);
+                    if (fcm === null) return Infinity;
+                    return dataPoints.reduce((acc,p)=>{
+                        const pred = this.calculateResistance(fcm, s, p.days);
+                        return acc + (p.mpa - pred)**2;
+                    },0);
+                };
+                const s_opt = this.goldenSection(s_min, s_max, sse);
+                return { s: s_opt, fcm: this.findBestFitFcm(dataPoints, s_opt) };
+            },
+            
+            findTrulyBestFitParameters(dataPoints) {
+                if (dataPoints.length < 2) return null;
+                return this.findBestFitParameters(dataPoints, 0.05, 0.60);
+            },
+
             findBestFitFcm(dataPoints, s) {
                 if (dataPoints.length < 1) return null;
                 let numerator = 0;
@@ -293,51 +401,75 @@
                 });
                 return denominator > 0 ? numerator / denominator : null;
             },
+            
+            computeOffsetResiduals(data, fcm, s){
+                const res = data.map(p => this.calculateResistance(fcm, s, p.days) - p.mpa);
+                const positives = res.filter(x=>x>0).sort((a,b)=>a-b);
+                const maxPos = positives.length? positives[positives.length-1] : 0;
+                const p95 = positives.length? positives[Math.floor(0.95*(positives.length-1))] : 0;
+                return {maxPos, p95};
+            },
+
             performAnalysis(state) {
                 const { fck, sd, s_normative, realData, analysisMode } = state;
                 const fcm_base = fck + 1.65 * sd;
-                
+                                
                 let s_final = s_normative;
                 let fcm_final = fcm_base;
                 let safetyOffset = 0;
                 let ruleApplied = false;
-                
-                let unconstrainedFcm = fcm_base;
-                let unconstrainedS = s_normative;
-                let unconstrainedOffset = 0;
-                let showUnconstrainedCurve = false;
+                                
+                let plausibleTrendFcm = fcm_base;
+                let plausibleTrendS = s_normative;
+                let plausibleTrendOffset = 0;
+                let showPlausibleTrendCurve = false;
                 let tendencySuperiority = 0;
+
+                let freeTrendFcm = fcm_base;
+                let freeTrendS = s_normative;
+                let freeTrendOffset = 0;
+                let showFreeTrendCurve = false;
 
                 if (realData.length > 0) {
                     if (analysisMode === 'adjusted' && realData.length > 1) {
-                        const bestFit = this.findBestFitParameters(realData);
-                        if (bestFit) { 
-                            unconstrainedS = bestFit.s; 
-                            unconstrainedFcm = bestFit.fcm; 
+                        const s_range_offset = 0.03;
+                        const s_min_plausible = Math.max(0.05, s_normative - s_range_offset);
+                        const s_max_plausible = s_normative + s_range_offset;
+
+                        const bestFitPlausible = this.findBestFitParameters(realData, s_min_plausible, s_max_plausible);
+                        if (bestFitPlausible) {
+                             plausibleTrendS = bestFitPlausible.s;
+                             plausibleTrendFcm = bestFitPlausible.fcm;
                         }
+                        const bestFitFree = this.findTrulyBestFitParameters(realData);
+                        if (bestFitFree) {
+                            freeTrendS = bestFitFree.s;
+                            freeTrendFcm = bestFitFree.fcm;
+                        }
+
                     } else if (analysisMode === 'normative' || realData.length <= 1) {
-                         unconstrainedFcm = this.findBestFitFcm(realData, unconstrainedS) || fcm_base;
+                         plausibleTrendFcm = this.findBestFitFcm(realData, plausibleTrendS) || fcm_base;
+                         freeTrendFcm = plausibleTrendFcm;
                     }
 
-                    if (unconstrainedFcm > fcm_base) {
-                        showUnconstrainedCurve = true;
+                    if (plausibleTrendFcm > fcm_base) {
+                        showPlausibleTrendCurve = true;
                         const fcm_ref_28 = this.calculateResistance(fcm_base, s_normative, 28);
-                        const fcm_unconstrained_28 = this.calculateResistance(unconstrainedFcm, unconstrainedS, 28);
+                        const fcm_plausible_28 = this.calculateResistance(plausibleTrendFcm, plausibleTrendS, 28);
                         if (fcm_ref_28 > 0) {
-                            tendencySuperiority = ((fcm_unconstrained_28 / fcm_ref_28) - 1) * 100;
+                            tendencySuperiority = ((fcm_plausible_28 / fcm_ref_28) - 1) * 100;
                         }
-                        let maxDiffUnconstrained = 0;
-                        realData.forEach(point => {
-                            const pred = this.calculateResistance(unconstrainedFcm, unconstrainedS, point.days);
-                            const diff = pred - point.mpa;
-                            if (diff > maxDiffUnconstrained) maxDiffUnconstrained = diff;
-                        });
-                        unconstrainedOffset = maxDiffUnconstrained;
+                        plausibleTrendOffset = this.computeOffsetResiduals(realData, plausibleTrendFcm, plausibleTrendS).maxPos;
+                    }
+                    
+                    if (freeTrendFcm > fcm_base && analysisMode === 'adjusted') {
+                        showFreeTrendCurve = true;
+                        freeTrendOffset = this.computeOffsetResiduals(realData, freeTrendFcm, freeTrendS).maxPos;
                     }
 
-                    let reg_fcm_limited = Math.min(unconstrainedFcm, fcm_base);
-                    let reg_s_final = unconstrainedS;
-                    
+                    let reg_fcm_limited = Math.min(plausibleTrendFcm, fcm_base);
+                    let reg_s_final = plausibleTrendS;
+                                        
                     let shouldUseTheoretical = false;
                     if (realData.length > 1 && analysisMode === 'adjusted') {
                         let isRefCurveBelowAllPoints = true;
@@ -360,7 +492,7 @@
                             }
                         }
                     }
-                    
+                                        
                     if (shouldUseTheoretical) {
                         s_final = s_normative;
                         fcm_final = fcm_base;
@@ -369,18 +501,13 @@
                         fcm_final = reg_fcm_limited;
                     }
 
-                    let maxDifference = 0;
-                    realData.forEach(point => {
-                        const meanPrediction = this.calculateResistance(fcm_final, s_final, point.days);
-                        const difference = meanPrediction - point.mpa;
-                        if (difference > maxDifference) { maxDifference = difference; }
-                    });
-                    safetyOffset = maxDifference;
+                    safetyOffset = this.computeOffsetResiduals(realData, fcm_final, s_final).maxPos;
                 }
-                
+                                
                 return { 
                     fcm: fcm_final, s: s_final, offset: safetyOffset, fcm_base, ruleApplied,
-                    showUnconstrainedCurve, unconstrainedFcm, unconstrainedS, unconstrainedOffset, tendencySuperiority
+                    showPlausibleTrendCurve, plausibleTrendFcm, plausibleTrendS, plausibleTrendOffset, tendencySuperiority,
+                    showFreeTrendCurve, freeTrendFcm, freeTrendS, freeTrendOffset
                 };
             }
         };
@@ -405,20 +532,30 @@
                     fckInput: document.getElementById('fckInput'),
                     sdInput: document.getElementById('sdInput'),
                     cementType: document.getElementById('cementType'),
+                    customSContainer: document.getElementById('customSContainer'),
+                    customSInput: document.getElementById('customSInput'),
                     analysisMode: document.getElementById('analysisMode'),
                     dataTableBody: document.getElementById('dataTableBody'),
                     addPointBtn: document.getElementById('addPointBtn'),
                     predictionDays: document.getElementById('predictionDays'),
                     predictedResistanceDisplay: document.getElementById('predictedResistance'),
-                    predictedTrendResistanceContainer: document.getElementById('predictedTrendResistanceContainer'),
-                    predictedTrendResistance: document.getElementById('predictedTrendResistance'),
+                    predictedPlausibleTrendResistanceContainer: document.getElementById('predictedPlausibleTrendResistanceContainer'),
+                    predictedPlausibleTrendResistance: document.getElementById('predictedPlausibleTrendResistance'),
+                    predictedFreeTrendResistanceContainer: document.getElementById('predictedFreeTrendResistanceContainer'),
+                    predictedFreeTrendResistance: document.getElementById('predictedFreeTrendResistance'),
                     guidanceBox: document.getElementById('guidanceBox'),
+                    warningsBox: document.getElementById('warningsBox'),
                     trendGuidanceBox: document.getElementById('trendGuidanceBox'),
+                    delta28Box: document.getElementById('delta28Box'),
+                    autoDropToggle: document.getElementById('autoDropToggle'),
+                    excludedList: document.getElementById('excludedList'),
                     equationsSection: document.getElementById('equationsSection'),
                     theoreticalEquationDiv: document.getElementById('theoreticalEquation'),
                     characteristicEquationDiv: document.getElementById('characteristicEquation'),
-                    trendEquationContainer: document.getElementById('trendEquationContainer'),
-                    trendEquation: document.getElementById('trendEquation'),
+                    plausibleTrendEquationContainer: document.getElementById('plausibleTrendEquationContainer'),
+                    plausibleTrendEquation: document.getElementById('plausibleTrendEquation'),
+                    freeTrendEquationContainer: document.getElementById('freeTrendEquationContainer'),
+                    freeTrendEquation: document.getElementById('freeTrendEquation'),
                     generateReportBtn: document.getElementById('generateReportBtn'),
                     reportModal: document.getElementById('reportModal'),
                     reportContent: document.getElementById('reportContent'),
@@ -432,11 +569,15 @@
                 this.store.state = {
                     fck: parseFloat(this.nodes.fckInput.value) || 25,
                     sd: parseFloat(this.nodes.sdInput.value) || 4.0,
-                    s_normative: parseFloat(this.nodes.cementType.value) || 0.23,
+                    cementTypeValue: this.nodes.cementType.value,
+                    customSValue: parseFloat(this.nodes.customSInput.value),
                     analysisMode: this.nodes.analysisMode.value,
                     realData: [],
                     predictionDays: parseFloat(this.nodes.predictionDays.value) || null,
-                    analysisResults: null
+                    analysisResults: null,
+                    dataWarnings: [],
+                    autoDropLessConservative: false,
+                    excludedForFit: [],
                 };
 
                 this.initializeChart();
@@ -444,7 +585,7 @@
                 this.store.subscribe(this.update.bind(this));
                 this.update(this.store.getState());
             },
-            
+                        
             initializeChart() {
                 this.chartInstance = new Chart(this.nodes.ctx, {
                     type: 'line',
@@ -452,7 +593,8 @@
                         { label: 'Referência', data: [], borderColor: 'rgba(59, 130, 246, 0.7)', borderWidth: 2, pointRadius: 0, tension: 0.4, fill: false, borderDash: [5, 5], cubicInterpolationMode: 'monotone' },
                         { label: 'Curva Característica (Limitada)', data: [], borderColor: 'rgba(220, 38, 38, 1)', borderWidth: 3, pointRadius: 0, tension: 0.4, fill: false, cubicInterpolationMode: 'monotone' },
                         { type: 'scatter', label: 'Resultados Reais (Ensaio)', data: [], backgroundColor: 'rgba(239, 68, 68, 1)', borderColor: 'rgba(220, 38, 38, 1)', pointRadius: 6, pointHoverRadius: 8, z: 10 },
-                        { label: 'Tendência Livre (Não Limitada)', data: [], borderColor: 'rgba(34, 197, 94, 0.8)', borderWidth: 3, pointRadius: 0, tension: 0.4, fill: false, borderDash: [6, 3], hidden: true, cubicInterpolationMode: 'monotone' }
+                        { label: 'Tendência Plausível (s restrito)', data: [], borderColor: 'rgba(34, 197, 94, 0.8)', borderWidth: 3, pointRadius: 0, tension: 0.4, fill: false, borderDash: [6, 3], hidden: true, cubicInterpolationMode: 'monotone' },
+                        { label: 'Tendência Livre (s livre)', data: [], borderColor: 'rgba(124, 58, 237, 0.8)', borderWidth: 2, pointRadius: 0, tension: 0.4, fill: false, borderDash: [2, 2], hidden: true, cubicInterpolationMode: 'monotone' }
                     ]},
                     options: {
                         responsive: true, maintainAspectRatio: false,
@@ -463,8 +605,8 @@
                         plugins: {
                             legend: { position: 'bottom', align: 'start', labels: { boxWidth: 20, padding: 15, font: { size: 10 } } },
                             tooltip: {
-                                mode: 'x', 
-                                intersect: false,
+                                mode: 'x',
+                                 intersect: false,
                                 callbacks: {
                                     title: (tooltipItems) => {
                                         if (tooltipItems.length > 0) {
@@ -486,7 +628,11 @@
                                     }
                                 }
                             },
-                            annotation: { annotations: { fckLine: { type: 'line', yMin: 0, yMax: 0, borderColor: 'rgba(245, 158, 11, 1)', borderWidth: 2, borderDash: [10, 5], label: { content: '', enabled: true, position: 'end', backgroundColor: 'rgba(245, 158, 11, 0.8)', color: 'white', font: { size: 10 } } } } }
+                            annotation: { annotations: { 
+                                fckLine: { type: 'line', yMin: 0, yMax: 0, borderColor: 'rgba(245, 158, 11, 1)', borderWidth: 2, borderDash: [10, 5], label: { content: '', enabled: true, position: 'end', backgroundColor: 'rgba(245, 158, 11, 0.8)', color: 'white', font: { size: 10 } } },
+                                predicted28dLine: { type: 'line', scaleID: 'x', value: 28, borderColor: 'rgba(220, 38, 38, 0.5)', borderWidth: 2, borderDash: [2,2], label: { content: 'Prev. 28d', enabled: false, position: 'start', backgroundColor: 'rgba(220, 38, 38, 0.8)' } },
+                                real28dPoint: { type: 'point', scaleID: 'y', xValue: 28, yValue: 0, backgroundColor: 'rgba(245, 158, 11, 1)', radius: 6, enabled: false }
+                            } }
                         }
                     }
                 });
@@ -500,12 +646,23 @@
                         timeout = setTimeout(() => func.apply(this, args), delay);
                     };
                 };
-                
+                                
                 const debouncedUpdate = debounce((key, value) => this.store.commit(key, value), 300);
 
                 this.nodes.fckInput.addEventListener('input', (e) => debouncedUpdate('fck', parseFloat(e.target.value)));
                 this.nodes.sdInput.addEventListener('input', (e) => debouncedUpdate('sd', parseFloat(e.target.value) || 4.0));
-                this.nodes.cementType.addEventListener('change', (e) => this.store.commit('s_normative', parseFloat(e.target.value)));
+                
+                this.nodes.cementType.addEventListener('change', (e) => {
+                    const value = e.target.value;
+                    if (value === 'custom') {
+                        this.nodes.customSContainer.classList.remove('hidden');
+                    } else {
+                        this.nodes.customSContainer.classList.add('hidden');
+                    }
+                    this.store.commit('cementTypeValue', value);
+                });
+                this.nodes.customSInput.addEventListener('input', (e) => debouncedUpdate('customSValue', parseFloat(e.target.value)));
+
                 this.nodes.analysisMode.addEventListener('change', (e) => this.store.commit('analysisMode', e.target.value));
                 this.nodes.predictionDays.addEventListener('input', (e) => debouncedUpdate('predictionDays', parseFloat(e.target.value)));
 
@@ -532,18 +689,40 @@
                         this.store.commit('realData', newData);
                     }
                 });
-                
+
+                this.nodes.autoDropToggle.addEventListener('change', (e) =>
+                  this.store.commit('autoDropLessConservative', !!e.target.checked)
+                );
+                                
                 this.bindModalEvents();
             },
-            
+                        
             update(state) {
                 try {
+                    const s_normative = state.cementTypeValue === 'custom' 
+                        ? Calculator.validateInput(state.customSValue, "S Personalizado", 0.05, 0.6)
+                        : parseFloat(state.cementTypeValue);
+                    
+                    const stateWithResolvedS = {...state, s_normative };
+
                     Calculator.validateInput(state.fck, "FCK de Projeto", 10, 150);
                     Calculator.validateInput(state.sd, "Desvio Padrão", 2.0);
-
-                    const analysisResults = Calculator.performAnalysis(state);
                     
+                    const dataWarnings = DataValidator.checkAll(state.realData, s_normative);
+                    this.store.state.dataWarnings = dataWarnings; 
+                    
+                    let drops = [];
+                    if(state.autoDropLessConservative){
+                      drops = DataValidator.suggestDropsForFit(state.realData.sort((a,b)=>a.days-b.days), s_normative);
+                    }
+                    const realDataForFit = state.realData.filter(p => !drops.includes(p.days));
+
+                    const analysisResults = Calculator.performAnalysis({
+                      ...stateWithResolvedS, realData: realDataForFit
+                    });
+                                        
                     this.store.state.analysisResults = analysisResults;
+                    this.store.state.excludedForFit = drops;
 
                     this.render(this.store.getState());
 
@@ -557,34 +736,57 @@
                 this.renderChart(state);
                 this.renderTable(state);
                 this.renderGuidance(state);
+                this.renderWarnings(state); 
                 this.renderEquations(state);
                 this.renderPrediction(state);
+                this.renderDelta28(state);
                 this.nodes.generateReportBtn.disabled = state.realData.length === 0;
                 this.nodes.exportPdfBtn.disabled = state.realData.length === 0;
             },
-            
+                        
             renderChart(state) {
-                const { analysisResults, fck, s_normative, realData } = state;
+                const { analysisResults, fck, realData } = state;
                 if (!analysisResults || !this.chartInstance) return;
+
+                const s_normative = state.cementTypeValue === 'custom' ? state.customSValue : parseFloat(state.cementTypeValue);
 
                 const theoreticalCurve = Calculator.generateCurveData(analysisResults.fcm_base, s_normative);
                 const characteristicCurve = Calculator.generateCurveData(analysisResults.fcm, analysisResults.s).map(p => ({ x: p.x, y: Math.max(0, p.y - analysisResults.offset) }));
-                
+                                
                 this.chartInstance.data.datasets[0].data = theoreticalCurve;
                 this.chartInstance.data.datasets[0].label = `Referência (${this.nodes.cementType.options[this.nodes.cementType.selectedIndex].text})`;
                 this.chartInstance.data.datasets[1].data = characteristicCurve;
                 this.chartInstance.data.datasets[2].data = realData.map(p => ({ x: p.days, y: p.mpa }));
-                
-                const unconstrainedCurve = analysisResults.showUnconstrainedCurve 
-                    ? Calculator.generateCurveData(analysisResults.unconstrainedFcm, analysisResults.unconstrainedS).map(p => ({ x: p.x, y: Math.max(0, p.y - analysisResults.unconstrainedOffset) }))
+                                
+                const plausibleTrendCurve = analysisResults.showPlausibleTrendCurve 
+                    ? Calculator.generateCurveData(analysisResults.plausibleTrendFcm, analysisResults.plausibleTrendS).map(p => ({ x: p.x, y: Math.max(0, p.y - analysisResults.plausibleTrendOffset) }))
                     : [];
-                this.chartInstance.data.datasets[3].data = unconstrainedCurve;
-                this.chartInstance.data.datasets[3].hidden = !analysisResults.showUnconstrainedCurve;
+                this.chartInstance.data.datasets[3].data = plausibleTrendCurve;
+                this.chartInstance.data.datasets[3].hidden = !analysisResults.showPlausibleTrendCurve;
+
+                const freeTrendCurve = analysisResults.showFreeTrendCurve 
+                    ? Calculator.generateCurveData(analysisResults.freeTrendFcm, analysisResults.freeTrendS).map(p => ({ x: p.x, y: Math.max(0, p.y - analysisResults.freeTrendOffset) }))
+                    : [];
+                this.chartInstance.data.datasets[4].data = freeTrendCurve;
+                this.chartInstance.data.datasets[4].hidden = !analysisResults.showFreeTrendCurve;
 
                 this.chartInstance.options.plugins.annotation.annotations.fckLine.yMin = fck;
                 this.chartInstance.options.plugins.annotation.annotations.fckLine.yMax = fck;
                 this.chartInstance.options.plugins.annotation.annotations.fckLine.label.content = `fck = ${fck} MPa`;
                 
+                // Indicador de 28 dias
+                const p28 = state.realData.find(p => p.days === 28);
+                const pred28dLine = this.chartInstance.options.plugins.annotation.annotations.predicted28dLine;
+                const real28dPoint = this.chartInstance.options.plugins.annotation.annotations.real28dPoint;
+                if (p28) {
+                    pred28dLine.enabled = true;
+                    real28dPoint.enabled = true;
+                    real28dPoint.yValue = p28.mpa;
+                } else {
+                    pred28dLine.enabled = false;
+                    real28dPoint.enabled = false;
+                }
+                                
                 this.chartInstance.update('none');
             },
 
@@ -596,7 +798,7 @@
                     this.nodes.dataTableBody.appendChild(row);
                 });
             },
-            
+                        
             renderGuidance(state) {
                 const { analysisResults, analysisMode, realData } = state;
                 if (!analysisResults) return;
@@ -612,7 +814,7 @@
                     bgColor = 'bg-purple-100'; textColor = 'text-purple-800';
                 } else {
                     let fcmMessagePart = `fcm ajustado: ${analysisResults.fcm.toFixed(1)} MPa`;
-                    if (analysisResults.fcm < analysisResults.fcm_base && analysisResults.showUnconstrainedCurve) {
+                    if (analysisResults.fcm < analysisResults.fcm_base && analysisResults.showPlausibleTrendCurve) {
                        fcmMessagePart = `fcm: ${analysisResults.fcm.toFixed(1)} MPa (limitado)`;
                     }
 
@@ -626,7 +828,7 @@
                          } else {
                             message = `<b>Análise Otimizada (${fcmMessagePart}, s: ${analysisResults.s.toFixed(3)}):</b> A curva foi otimizada com base na tendência real dos seus dados.`;
                             bgColor = 'bg-green-100'; textColor = 'text-green-800';
-                            if (analysisResults.showUnconstrainedCurve) {
+                            if (analysisResults.showPlausibleTrendCurve) {
                                 bgColor = 'bg-yellow-100'; textColor = 'text-yellow-800';
                             }
                          }
@@ -635,8 +837,8 @@
                 this.nodes.guidanceBox.className = `p-3 mb-2 text-sm rounded-lg ${bgColor} ${textColor}`;
                 this.nodes.guidanceBox.innerHTML = message;
 
-                if (analysisResults.showUnconstrainedCurve) {
-                    this.nodes.trendGuidanceBox.innerHTML = `<b>Tendência Superior:</b> A regressão livre indica um potencial de resistência <b>${analysisResults.tendencySuperiority.toFixed(1)}% maior</b> que a referência aos 28 dias. A Curva Característica foi limitada por segurança.`;
+                if (analysisResults.showPlausibleTrendCurve) {
+                    this.nodes.trendGuidanceBox.innerHTML = `<b>Tendência Superior:</b> A regressão plausível indica um potencial de resistência <b>${analysisResults.tendencySuperiority.toFixed(1)}% maior</b> que a referência aos 28 dias. A Curva Característica foi limitada por segurança.`;
                     this.nodes.trendGuidanceBox.className = 'p-3 mb-4 text-sm rounded-lg bg-teal-100 text-teal-800';
                     this.nodes.trendGuidanceBox.classList.remove('hidden');
                 } else {
@@ -644,24 +846,68 @@
                 }
             },
 
+            renderWarnings(state) {
+                const { dataWarnings, excludedForFit } = state;
+                const hasWarnings = dataWarnings && dataWarnings.length > 0;
+                const hasExclusions = excludedForFit && excludedForFit.length > 0;
+
+                if (!hasWarnings && !hasExclusions) {
+                    this.nodes.warningsBox.innerHTML = '';
+                    this.nodes.warningsBox.classList.add('hidden');
+                    this.nodes.excludedList.classList.add('hidden');
+                    return;
+                }
+                
+                if (hasWarnings) {
+                    const warningsHtml = dataWarnings.map(msg => `<div class="p-3 text-sm rounded-lg bg-yellow-100 text-yellow-800">${msg}</div>`).join('');
+                    this.nodes.warningsBox.innerHTML = warningsHtml;
+                    this.nodes.warningsBox.classList.remove('hidden');
+                } else {
+                    this.nodes.warningsBox.classList.add('hidden');
+                }
+
+                if (hasExclusions) {
+                  this.nodes.excludedList.classList.remove('hidden');
+                  this.nodes.excludedList.innerHTML = 
+                    `Pontos excluídos do <b>ajuste</b> (heurística conservadora): ` +
+                    excludedForFit.sort((a,b)=>a-b).map(d=>`${d}d`).join(', ') +
+                    `. Os dados permanecem visíveis no gráfico/tabela.`;
+                } else {
+                  this.nodes.excludedList.classList.add('hidden');
+                  this.nodes.excludedList.innerHTML = '';
+                }
+            },
+
             renderEquations(state) {
-                const { analysisResults, s_normative } = state;
-                if (!analysisResults || !analysisResults.s || !analysisResults.fcm) {
+                const { analysisResults } = state;
+                 if (!analysisResults || !analysisResults.s || !analysisResults.fcm) {
                     this.nodes.equationsSection.classList.add('hidden');
                     return;
                 }
+                
+                const s_normative = state.cementTypeValue === 'custom' ? state.customSValue : parseFloat(state.cementTypeValue);
+
                 this.nodes.equationsSection.classList.remove('hidden');
+                
                 const th_eq = `f_{cm,ref}(t) = ${analysisResults.fcm_base.toFixed(2)} \\cdot e^{\\left[${s_normative.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]}`;
                 const ch_eq = `f_{ck,est}(t) = \\left( ${analysisResults.fcm.toFixed(2)} \\cdot e^{\\left[${analysisResults.s.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]} \\right) - ${analysisResults.offset.toFixed(2)}`;
                 katex.render(th_eq, this.nodes.theoreticalEquationDiv, { throwOnError: false });
                 katex.render(ch_eq, this.nodes.characteristicEquationDiv, { throwOnError: false });
 
-                if (analysisResults.showUnconstrainedCurve) {
-                    const tr_eq = `f_{ck,tend}(t) = \\left( ${analysisResults.unconstrainedFcm.toFixed(2)} \\cdot e^{\\left[${analysisResults.unconstrainedS.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]} \\right) - ${analysisResults.unconstrainedOffset.toFixed(2)}`;
-                    katex.render(tr_eq, this.nodes.trendEquation, { throwOnError: false });
-                    this.nodes.trendEquationContainer.classList.remove('hidden');
+                if (analysisResults.showPlausibleTrendCurve) {
+                    const pl_eq = `f_{ck,tend}(t) = \\left( ${analysisResults.plausibleTrendFcm.toFixed(2)} \\cdot e^{\\left[${analysisResults.plausibleTrendS.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]} \\right) - ${analysisResults.plausibleTrendOffset.toFixed(2)}`;
+                    katex.render(pl_eq, this.nodes.plausibleTrendEquation, { throwOnError: false });
+                    this.nodes.plausibleTrendEquationContainer.classList.remove('hidden');
                 } else {
-                    this.nodes.trendEquationContainer.classList.add('hidden');
+                    this.nodes.plausibleTrendEquationContainer.classList.add('hidden');
+                }
+                
+                if (analysisResults.showFreeTrendCurve) {
+                    const fr_eq = `f_{ck,livre}(t) = \\left( ${analysisResults.freeTrendFcm.toFixed(2)} \\cdot e^{\\left[${analysisResults.freeTrendS.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]} \\right) - ${analysisResults.freeTrendOffset.toFixed(2)}`;
+                    katex.render(fr_eq, this.nodes.freeTrendEquation, { throwOnError: false });
+                    this.nodes.freeTrendEquationContainer.classList.remove('hidden');
+                } else {
+                    this.nodes.freeTrendEquationContainer.classList.add('hidden');
                 }
             },
 
@@ -669,22 +915,52 @@
                 const { analysisResults, predictionDays } = state;
                 if (!analysisResults || isNaN(predictionDays) || predictionDays <= 0) {
                     this.nodes.predictedResistanceDisplay.innerHTML = '-- MPa';
-                    this.nodes.predictedTrendResistanceContainer.classList.add('hidden');
+                    this.nodes.predictedPlausibleTrendResistanceContainer.classList.add('hidden');
+                    this.nodes.predictedFreeTrendResistanceContainer.classList.add('hidden');
                     return;
                 }
-                
+                                
                 const meanResistance = Calculator.calculateResistance(analysisResults.fcm, analysisResults.s, predictionDays);
                 const characteristicResistance = Math.max(0, meanResistance - analysisResults.offset);
                 this.nodes.predictedResistanceDisplay.innerHTML = `${characteristicResistance.toFixed(2)} MPa`;
 
-                if (analysisResults.showUnconstrainedCurve) {
-                    const trendMeanResistance = Calculator.calculateResistance(analysisResults.unconstrainedFcm, analysisResults.unconstrainedS, predictionDays);
-                    const trendCharacteristicResistance = Math.max(0, trendMeanResistance - analysisResults.unconstrainedOffset);
-                    this.nodes.predictedTrendResistance.innerHTML = `${trendCharacteristicResistance.toFixed(2)} MPa`;
-                    this.nodes.predictedTrendResistanceContainer.classList.remove('hidden');
+                if (analysisResults.showPlausibleTrendCurve) {
+                    const trendMeanResistance = Calculator.calculateResistance(analysisResults.plausibleTrendFcm, analysisResults.plausibleTrendS, predictionDays);
+                    const trendCharacteristicResistance = Math.max(0, trendMeanResistance - analysisResults.plausibleTrendOffset);
+                    this.nodes.predictedPlausibleTrendResistance.innerHTML = `${trendCharacteristicResistance.toFixed(2)} MPa`;
+                    this.nodes.predictedPlausibleTrendResistanceContainer.classList.remove('hidden');
                 } else {
-                    this.nodes.predictedTrendResistanceContainer.classList.add('hidden');
+                    this.nodes.predictedPlausibleTrendResistanceContainer.classList.add('hidden');
                 }
+                
+                if (analysisResults.showFreeTrendCurve) {
+                    const freeTrendMeanResistance = Calculator.calculateResistance(analysisResults.freeTrendFcm, analysisResults.freeTrendS, predictionDays);
+                    const freeTrendCharacteristicResistance = Math.max(0, freeTrendMeanResistance - analysisResults.freeTrendOffset);
+                    this.nodes.predictedFreeTrendResistance.innerHTML = `${freeTrendCharacteristicResistance.toFixed(2)} MPa`;
+                    this.nodes.predictedFreeTrendResistanceContainer.classList.remove('hidden');
+                } else {
+                    this.nodes.predictedFreeTrendResistanceContainer.classList.add('hidden');
+                }
+            },
+            
+            renderDelta28(state) {
+                const p28 = state.realData.find(p => p.days === 28);
+                const ar = state.analysisResults;
+                if (!p28 || !ar) {
+                    this.nodes.delta28Box.classList.add('hidden');
+                    return;
+                }
+                
+                const mean28 = Calculator.calculateResistance(ar.fcm, ar.s, 28);
+                const ck28 = Math.max(0, mean28 - ar.offset);
+                const err = ((ck28 - p28.mpa) / p28.mpa) * 100;
+                
+                const message = `<b>Acurácia vs. 28d Real:</b> <span class="font-bold ${err > 0 ? 'text-red-600' : 'text-green-600'}">${err.toFixed(1)}%</span> (${err > 0 ? 'superestimou' : 'conservador'})`;
+                const bgColor = err > 5 ? 'bg-red-100 text-red-800' : err < -5 ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
+                
+                this.nodes.delta28Box.className = `p-3 mb-4 text-sm rounded-lg ${bgColor}`;
+                this.nodes.delta28Box.innerHTML = message;
+                this.nodes.delta28Box.classList.remove('hidden');
             },
 
             bindModalEvents() {
@@ -698,18 +974,19 @@
                     this.nodes.reportModal.querySelector('.modal-content').classList.add('scale-95');
                     setTimeout(() => this.nodes.reportModal.classList.add('hidden'), 300);
                 });
-                
+                                
                 this.nodes.importCsvBtn.addEventListener('click', () => this.nodes.csvFileInput.click());
                 this.nodes.csvFileInput.addEventListener('change', this.handleCsvImport.bind(this));
                 this.nodes.exportPdfBtn.addEventListener('click', this.handlePdfExport.bind(this));
             },
-            
+                        
             generateReport() {
-                const { analysisResults, fck, sd, s_normative } = this.store.getState();
+                const { analysisResults, fck, sd } = this.store.getState();
                 if (!analysisResults) {
                     this.nodes.reportContent.innerHTML = '<p>Dados insuficientes para gerar o relatório.</p>';
                     return;
                 }
+                const s_normative = this.store.state.cementTypeValue === 'custom' ? this.store.state.customSValue : parseFloat(this.store.state.cementTypeValue);
                 const { fcm, s, fcm_base, offset } = analysisResults;
                 const fck_est_28 = Calculator.calculateResistance(fcm, s, 28) - offset;
 
@@ -726,7 +1003,7 @@
                     s.toFixed(3) > s_normative.toFixed(3) ?
                     `<b>mais lento</b> (s=${s.toFixed(3)}) que o normativo (s=${s_normative.toFixed(3)}).` :
                     `<b>equivalente</b> (s=${s.toFixed(3)}) ao normativo (s=${s_normative.toFixed(3)}).`;
-
+                
                 const fcm_comparison_text = fcm < fcm_base ?
                     `<b>inferior</b> (fcm,real = ${fcm.toFixed(1)} MPa) ao potencial teórico do traço (fcm,teórico = ${fcm_base.toFixed(1)} MPa).` :
                     `<b>compatível ou superior</b> (fcm,real = ${fcm.toFixed(1)} MPa) ao potencial teórico (fcm,teórico = ${fcm_base.toFixed(1)} MPa).`;
@@ -737,7 +1014,7 @@
                                      <li><b>Velocidade de Ganho de Resistência (Parâmetro 's'):</b> O ganho de resistência está ocorrendo de forma ${s_comparison_text}</li>
                                      <li><b>Resistência Potencial Média (Parâmetro 'fcm'):</b> A resistência potencial do concreto em si é ${fcm_comparison_text}</li>
                                 </ul>`;
-
+                
                 if (fck_est_28 < fck) {
                     causes = `<h4 class="font-semibold mt-4">Possíveis Causas para o Baixo Desempenho:</h4>
                                 <ul class="list-disc list-inside space-y-1 mt-2">
@@ -768,19 +1045,35 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const text = e.target.result;
-                    const rows = text.split('\n').slice(1);
+                    const rows = text.replace(/\r/g,'').split('\n').slice(1);
+                    const parseNum = (v) => parseFloat(String(v).trim().replace(',', '.'));
                     const newPoints = rows.map(row => {
-                        const [days, mpa] = row.split(/[,;]/);
-                        const dayNum = parseFloat(days);
-                        const mpaNum = parseFloat(mpa);
-                        if (!isNaN(dayNum) && !isNaN(mpaNum) && dayNum > 0 && mpaNum > 0) {
-                            return { days: dayNum, mpa: mpaNum };
-                        }
-                        return null;
+                      const parts = row.split(/[;,]/).map(x => x.trim());
+                      const dayNum = parseNum(parts[0]);
+                      const mpaNum = parseNum(parts[1]);
+                      return (!isNaN(dayNum) && !isNaN(mpaNum) && dayNum>0 && mpaNum>0) ? {days: dayNum, mpa: mpaNum} : null;
                     }).filter(Boolean);
                     
+                    const aggregateByDay = (points) => {
+                      const byDay = new Map();
+                      points.forEach(p=>{
+                        const k = Number(p.days);
+                        if(!byDay.has(k)) byDay.set(k, []);
+                        byDay.get(k).push(Number(p.mpa));
+                      });
+                      const agg = [];
+                      for(const [days, arr] of byDay.entries()){
+                        arr.sort((a,b)=>a-b);
+                        const mid = Math.floor(arr.length/2);
+                        const med = (arr.length%2)?arr[mid]:(0.5*(arr[mid-1]+arr[mid]));
+                        agg.push({days, mpa: med});
+                      }
+                      return agg.sort((a,b)=>a.days-b.days);
+                    }
+                                        
                     if (newPoints.length > 0) {
-                        this.store.commit('realData', [...this.store.getState().realData, ...newPoints]);
+                        const merged = aggregateByDay([...this.store.getState().realData, ...newPoints]);
+                        this.store.commit('realData', merged);
                     } else {
                         alert("Nenhum dado válido encontrado no arquivo CSV. O formato esperado é 'idade,resistencia' em cada linha.");
                     }
@@ -788,17 +1081,19 @@
                 reader.readAsText(file);
                 event.target.value = '';
             },
-            
+                        
             async handlePdfExport() {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
                 const state = this.store.getState();
-                const { analysisResults, fck, sd, s_normative, realData } = state;
+                const { analysisResults, fck, sd, realData } = state;
 
                 if (!analysisResults || realData.length === 0) {
                     alert("Dados insuficientes para gerar o relatório.");
                     return;
                 }
+                
+                const s_normative = state.cementTypeValue === 'custom' ? state.customSValue : parseFloat(state.cementTypeValue);
 
                 this.nodes.exportPdfBtn.textContent = "Gerando PDF...";
                 this.nodes.exportPdfBtn.disabled = true;
@@ -819,9 +1114,9 @@
                     const cementText = this.nodes.cementType.options[this.nodes.cementType.selectedIndex].text;
                     doc.text(`- Resistência de Projeto (fck): ${fck} MPa`, 16, 42);
                     doc.text(`- Desvio Padrão de Dosagem (sd): ${sd.toFixed(1)} MPa`, 16, 47);
-                    doc.text(`- Tipo de Cimento (NBR 16697): ${cementText}`, 16, 52);
+                    doc.text(`- Tipo de Cimento (NBR 6118): ${cementText}`, 16, 52);
                     doc.text(`- Coeficiente Normativo (s): ${s_normative.toFixed(3)}`, 16, 57);
-                    
+                                        
                     const canvas = await html2canvas(this.nodes.captureArea, { scale: 2.5 });
                     const imgData = canvas.toDataURL('image/png');
 
@@ -832,12 +1127,12 @@
 
                     let pdfWidth = pageContentWidth;
                     let pdfHeight = pdfWidth * (canvas.height / canvas.width); 
-
+                    
                     if (pdfHeight > maxChartHeight) {
                         pdfHeight = maxChartHeight;
                         pdfWidth = pdfHeight * (canvas.width / canvas.height);
                     }
-                    
+                                        
                     const pdfX = 14 + (pageContentWidth - pdfWidth) / 2;
 
                     doc.addImage(imgData, 'PNG', pdfX, topMargin, pdfWidth, pdfHeight);
@@ -847,27 +1142,31 @@
                     doc.setFontSize(12);
                     doc.setFont('helvetica', 'bold');
                     doc.text("Equações Aplicadas", 14, chartBottomY + 10);
-                    
+                                        
                     const th_eq_string = `f_{cm,ref}(t) = ${analysisResults.fcm_base.toFixed(2)} \\cdot e^{\\left[${s_normative.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]}`;
                     const ch_eq_string = `f_{ck,est}(t) = \\left( ${analysisResults.fcm.toFixed(2)} \\cdot e^{\\left[${analysisResults.s.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]} \\right) - ${analysisResults.offset.toFixed(2)}`;
 
                     let currentY = await this.addKatexToPdf(doc, th_eq_string, 14, chartBottomY + 20, "Curva de Referência (Teórica):");
                     currentY = await this.addKatexToPdf(doc, ch_eq_string, 14, currentY, "Curva Característica (Estimada):");
 
-                    if (analysisResults.showUnconstrainedCurve) {
-                        const tr_eq_string = `f_{ck,tend}(t) = \\left( ${analysisResults.unconstrainedFcm.toFixed(2)} \\cdot e^{\\left[${analysisResults.unconstrainedS.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]} \\right) - ${analysisResults.unconstrainedOffset.toFixed(2)}`;
-                        await this.addKatexToPdf(doc, tr_eq_string, 14, currentY, "Curva de Tendência (Livre):");
+                    if (analysisResults.showPlausibleTrendCurve) {
+                        const pl_eq_string = `f_{ck,tend}(t) = \\left( ${analysisResults.plausibleTrendFcm.toFixed(2)} \\cdot e^{\\left[${analysisResults.plausibleTrendS.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]} \\right) - ${analysisResults.plausibleTrendOffset.toFixed(2)}`;
+                        currentY = await this.addKatexToPdf(doc, pl_eq_string, 14, currentY, "Curva de Tendência Plausível (s restrito):");
+                    }
+                    
+                    if (analysisResults.showFreeTrendCurve) {
+                        const fr_eq_string = `f_{ck,livre}(t) = \\left( ${analysisResults.freeTrendFcm.toFixed(2)} \\cdot e^{\\left[${analysisResults.freeTrendS.toFixed(3)} \\cdot \\left(1 - \\sqrt{28/t}\\right)\\right]} \\right) - ${analysisResults.freeTrendOffset.toFixed(2)}`;
+                        await this.addKatexToPdf(doc, fr_eq_string, 14, currentY, "Curva de Tendência Livre (s livre):");
                     }
 
                     doc.addPage();
                     doc.setFontSize(16);
                     doc.text("Diagnóstico Técnico e Recomendações", 105, 15, { align: 'center' });
 
-                    this.generateReport();
+                    this.generateReport(); 
                     await this.addHtmlToPdf(doc, this.nodes.reportContent.innerHTML, 14, 25);
 
                     doc.save(`relatorio-concreto-${new Date().toISOString().slice(0,10)}.pdf`);
-
                 } catch (err) {
                     console.error("Erro ao gerar PDF:", err);
                     alert("Ocorreu um erro ao gerar o PDF.");
@@ -897,15 +1196,15 @@
                 document.body.appendChild(tempDiv);
 
                 katex.render(latexString, tempDiv, { throwOnError: false, displayMode: true });
-                
+                                
                 await new Promise(resolve => setTimeout(resolve, 100));
 
                 const katexCanvas = await html2canvas(tempDiv, { scale: 3, backgroundColor: null });
                 const imgData = katexCanvas.toDataURL('image/png');
-                
+                                
                 const imgWidth = katexCanvas.width / 11.8;
                 const imgHeight = katexCanvas.height / 11.8;
-                
+                                
                 doc.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
                 document.body.removeChild(tempDiv);
                 return y + imgHeight + 8;
@@ -978,7 +1277,7 @@
                 }
             }
         };
-        
+                
         App.init();
     });
     </script>
