@@ -371,3 +371,47 @@ test('A2-06: autoDrop só liga com true ou "true"', () => {
     assert.deepEqual(analyze(base(rows, { fck: 40, autoDrop: 'true' })).excluidos, [7]);
     assert.deepEqual(analyze(base(rows, { fck: 40, autoDrop: true })).excluidos, [7]);
 });
+
+// ---------------------------------------------------------------------------
+// M4.3 (A3-16): inconsistência nos dados usados rebaixa a confiança 1 nível
+// ---------------------------------------------------------------------------
+test('M4.3: boa vira média com razão fora da faixa; selo segue a estimativa', () => {
+    // 3d=22 7d=35 14d=30 (C40): queda 7->14 e razões fora da faixa
+    const r = analyze(base([{ days: 3, mpa: 22 }, { days: 7, mpa: 35 }, { days: 14, mpa: 30 }], { fck: 40 }));
+    assert.ok(r.avisosDados.length > 0);
+    assert.equal(r.confianca.nivelOriginal, 'boa');
+    assert.equal(r.confianca.nivel, 'media');
+    assert.equal(r.confianca.rebaixada, true);
+    assert.match(r.confianca.motivo, /rebaixada por inconsistência nos dados/);
+    assert.notEqual(r.selo.codigo, 'indicativo');
+});
+test('M4.3: média vira baixa e o selo passa a Indicativo', () => {
+    const r = analyze(base([{ days: 3, mpa: 16 }, { days: 7, mpa: 14.5 }], { fck: 35, cementType: '0.25' }));
+    assert.equal(r.confianca.nivelOriginal, 'media');
+    assert.equal(r.confianca.nivel, 'baixa');
+    assert.equal(r.confianca.rotulo, 'apenas sinal');
+    assert.equal(r.selo.codigo, 'indicativo');
+});
+test('M4.3: baixa continua baixa; sem inconsistência nada muda', () => {
+    const b = analyze(base([{ days: 1, mpa: 20 }, { days: 3, mpa: 12 }]));
+    assert.equal(b.confianca.nivel, 'baixa');
+    assert.equal(b.confianca.rebaixada, false);
+    const ok = analyze(base([{ days: 3, mpa: 30 }, { days: 7, mpa: 38 }, { days: 14, mpa: 44 }]));
+    assert.equal(ok.confianca.nivel, 'boa');
+    assert.equal(ok.confianca.rebaixada, false);
+    assert.doesNotMatch(ok.confianca.motivo, /rebaixada/);
+});
+test('M4.3: só conta inconsistência nos pontos usados (exclusão automática tira o ponto que destoa)', () => {
+    const rows = [{ days: 3, mpa: 22 }, { days: 7, mpa: 35 }, { days: 14, mpa: 30 }];
+    const r = analyze(base(rows, { fck: 40, autoDrop: true }));
+    assert.deepEqual(r.excluidos, [7]);
+    const restantes = DataValidator.checkAll(r.pontosUsados, 0.2).length;
+    assert.equal(r.confianca.rebaixada, restantes > 0);
+});
+test('M4.3: números do ajuste não mudam (só o rótulo de confiança)', () => {
+    const rows = [{ days: 3, mpa: 22 }, { days: 7, mpa: 35 }, { days: 14, mpa: 30 }];
+    const r = analyze(base(rows, { fck: 40 }));
+    const ref = fixtures.cenarios.find(f => f.id === 'e2_outlier_sem_autodrop').saida;
+    perto(r.analise.fcm, ref.analise.fcm, 'fcm');
+    perto(r.estimada28, ref.previsao[28], 'estimada28');
+});

@@ -36,6 +36,7 @@ A tela segue a ordem dos passos. O botão "Carregar exemplo" preenche um caso co
 - **Baixa:** só uma idade ensaiada, ou todas as idades ≤ 3 dias (apenas sinal; nessas idades a projeção tende a superestimar), ou nenhum ensaio.
 - **Média:** duas ou mais idades distintas e maior idade ensaiada menor que 14 dias.
 - **Boa:** duas ou mais idades distintas e maior idade ensaiada ≥ 14 dias.
+- **Rebaixamento:** se os ensaios usados no ajuste tiverem inconsistência (resistência que cai com a idade ou razão entre idades fora da faixa esperada), a confiança desce um nível (boa para média, média para baixa) e o motivo diz "rebaixada por inconsistência nos dados". Com isso o selo pode virar "Indicativo".
 
 **Validação honesta aos 28 dias.** Quando há ensaio real de 28 dias, o app recalcula a previsão de 28 dias sem usar os ensaios de 28 d ou posteriores e compara com o valor medido, informando o erro percentual e se a projeção foi conservadora ou superestimou. Assim a validação não é circular. Sem ensaio de 28 d, ou sem ensaios anteriores a 28 d, o app informa que não há como validar.
 

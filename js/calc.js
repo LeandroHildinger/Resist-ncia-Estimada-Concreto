@@ -387,7 +387,19 @@
     }
 
     // D2: confiança pelo número de idades distintas e pela maior idade ensaiada.
-    function avaliarConfianca(usados) {
+    // M4.3 (A3-16, decisão do Leandro): inconsistência nos pontos usados no ajuste
+    // (queda com a idade ou razão fora da faixa) rebaixa a confiança 1 nível.
+    function avaliarConfianca(usados, s_normative) {
+        const base = confiancaBase(usados);
+        if (base.idades.length < 2) return { ...base, rebaixada: false, nivelOriginal: base.nivel };
+        const inconsistencias = DataValidator.checkAll(usados, s_normative).length;
+        if (inconsistencias === 0 || base.nivel === 'baixa') return { ...base, rebaixada: false, nivelOriginal: base.nivel };
+        const novo = base.nivel === 'boa' ? { nivel: 'media', rotulo: 'média' } : { nivel: 'baixa', rotulo: 'apenas sinal' };
+        return { ...base, ...novo, rebaixada: true, nivelOriginal: base.nivel,
+            motivo: `${base.motivo} Confiança rebaixada por inconsistência nos dados.` };
+    }
+
+    function confiancaBase(usados) {
         const idades = [...new Set(usados.map(p => p.days))].sort((a, b) => a - b);
         const maior = idades.length ? idades[idades.length - 1] : 0;
         if (idades.length === 0) {   // A2-02
@@ -495,7 +507,7 @@
         const estimada28 = preverEm(analise, 28).estimada;
         const p28 = pontos.find(p => p.days === 28);
         const real28 = p28 ? p28.mpa : null;
-        const confianca = avaliarConfianca(aj.usados);
+        const confianca = avaliarConfianca(aj.usados, params.s_normative);
 
         return {
             ok: true, erros: [], params, linhas, pontos,

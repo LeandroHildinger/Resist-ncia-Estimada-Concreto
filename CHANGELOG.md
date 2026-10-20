@@ -21,6 +21,8 @@ Modernização completa, baseada na auditoria técnica, de código e de usabilid
 
 - **A3-04 (20/10/2026):** com ensaio real de 28 d, o selo diz "Ensaio de 28 d acima do fck" / "abaixo do fck" (mediana dos CPs) e avisa que não é a aceitação do lote, que segue a NBR 12655.
 
+- **A3-16 (20/10/2026):** inconsistência nos ensaios usados no ajuste rebaixa a confiança um nível (boa para média, média para baixa); o selo pode passar a "Indicativo". Os números do ajuste não mudam.
+
 ### Interface
 - Telas reorganizadas em 3 passos (Concreto, Ensaios, Resultado), pensadas primeiro para o celular, com resumo fixo no topo em telas estreitas.
 - Cartão de resultado com valor, selo e confiança; opções avançadas recolhidas; ajuda tocável (sem depender de hover); botão "Carregar exemplo"; "Novo lote" com desfazer.

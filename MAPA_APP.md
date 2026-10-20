@@ -70,6 +70,8 @@ Com erro de parâmetro: `{ ok:false, erros:[...], linhas }`, sem nenhum resultad
 
 Com sucesso: `{ ok:true, params (fck, sd, sdPadrao, s_normative, ...), linhas (status ok/invalida + motivo), pontos (agregados por idade pela mediana, com n e índices), pontosUsados, excluidos, avisos [{tipo, texto}] (sd_padrao, linha_invalida, agregado, regra_referencia), avisosDados (avisos de monotonia/razão originais, HTML), analise (performAnalysis + s_normative), previsoes [{t, estimada, media, plausivel, livre, extrapolacao}], previsaoIdade, estimada28, atendeEstimada28, real28, comparacaoS, confianca {nivel baixa|media|boa, rotulo, motivo}, selo {codigo atende|nao_atende|indicativo, texto, base ensaio28|estimativa|indicativo, motivo}, validacao28 {calculada, previsto28, real28, erroPct, classificacao | motivo}, mensagens.regraReferencia }`.
 
+Confiança (D2 + M4.3): baixa / média / boa pelas idades usadas; inconsistência (monotonia ou razão fora da faixa) nos pontos usados rebaixa 1 nível (`confianca.rebaixada`, `nivelOriginal`).
+
 Regras: linha com idade/resistência vazia, não numérica ou ≤ 0 fica fora com aviso (C-04, C-19, T-08); CPs da mesma idade agregados pela mediana com aviso (C-07, C-08, T-07); sd vazio = 4,0 com aviso, 0 = erro (C-18); nada da entrada é mutado (C-20). Confiança/selo = D2; validação de 28 d sem os ensaios ≥ 28 d = D4; `extrapolacao = t > 28` para o D3.
 
 ### Testes
