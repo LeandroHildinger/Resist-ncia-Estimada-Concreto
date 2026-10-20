@@ -2,8 +2,10 @@
  * Estimativa Fck - núcleo de cálculo (puro, sem DOM).
  * Origem: index.html commit 6e0bdc9, linhas 269-513 (Beta, DataValidator, Calculator),
  * copiado sem alteração de lógica no marco M1 da modernização (2026-10-20).
+ * M2 (2026-10-20): correções T-21, T-23, C-25 no núcleo (comentadas no local) e pipeline
+ * analyze(input) / parseCsv(text) no fim do arquivo (C-01..C-09, C-18..C-21, T-07, T-08, T-14, T-22, D2, D4).
  * Uso no navegador: <script src="js/calc.js"></script> -> window.EstimativaCalc
- * Uso no Node: const { Beta, DataValidator, Calculator } = require('./js/calc.js')
+ * Uso no Node: const { analyze, parseCsv, Calculator } = require('./js/calc.js')
  */
 (function (root, factory) {
     if (typeof module === 'object' && module.exports) {
@@ -70,11 +72,10 @@
                 if(r_obs<low || r_obs>high){
                     const f28_1 = Beta.f28_from_point(byDay[p1], p1, s_normative);
                     const f28_2 = Beta.f28_from_point(byDay[p2], p2, s_normative);
-                    if (Math.abs(f28_1 - f28_2)/Math.max(f28_1,f28_2) < 0.03){
-                        drops.add(Math.min(p1,p2)); 
-                    } else {
-                        drops.add(f28_1 > f28_2 ? p1 : p2);
-                    }
+                    // T-21 (M2): removido o ramo "< 0.03" (inalcançável). Fora da banda,
+                    // f28_2/f28_1 = r_obs/r_exp sai de [1-alpha, 1+alpha], logo a diferença
+                    // relativa é >= alpha/(1+alpha) >= 0,0909 com alpha >= 0,10. Prova em tests/m2.test.js.
+                    drops.add(f28_1 > f28_2 ? p1 : p2);
                 }
             });
             return [...drops];
@@ -152,8 +153,8 @@
             const res = data.map(p => this.calculateResistance(fcm, s, p.days) - p.mpa);
             const positives = res.filter(x=>x>0).sort((a,b)=>a-b);
             const maxPos = positives.length? positives[positives.length-1] : 0;
-            const p95 = positives.length? positives[Math.floor(0.95*(positives.length-1))] : 0;
-            return {maxPos, p95};
+            // C-25 (M2): removido o p95, calculado e nunca usado.
+            return {maxPos};
         },
 
         performAnalysis(state) {
@@ -180,7 +181,8 @@
                 if (analysisMode === 'adjusted' && realData.length > 1) {
                     const s_range_offset = 0.03;
                     const s_min_plausible = Math.max(0.05, s_normative - s_range_offset);
-                    const s_max_plausible = s_normative + s_range_offset;
+                    // T-23 (M2): teto da janela plausível limitado a 0,60 (domínio do ajuste livre e do campo).
+                    const s_max_plausible = Math.min(0.60, s_normative + s_range_offset);
 
                     const bestFitPlausible = this.findBestFitParameters(realData, s_min_plausible, s_max_plausible);
                     if (bestFitPlausible) {
@@ -258,5 +260,272 @@
         }
     };
 
-    return { Beta, DataValidator, Calculator };
+    // =====================================================================
+    // M2: pipeline puro (antes espalhado em App.update, renderPrediction,
+    // renderDelta28, generateReport e handleCsvImport do index.html).
+    // A UI só chama analyze(input) e desenha o que vier.
+    // =====================================================================
+
+    const IDADES_PADRAO = [3, 7, 14, 28, 63];
+    const SD_PADRAO = 4.0;
+    const TOL_S = 0.0005;            // T-22
+    const CIMENTOS = { '0.25': 'CP I / CP II', '0.38': 'CP III / CP IV', '0.20': 'CP V-ARI' };
+
+    const vazio = v => v === undefined || v === null || (typeof v === 'string' && v.trim() === '') || (typeof v === 'number' && Number.isNaN(v));
+
+    // Converte número da tabela/CSV: aceita number ou texto com vírgula decimal. Vazio/lixo -> NaN.
+    function paraNumero(v) {
+        if (typeof v === 'number') return v;
+        if (vazio(v)) return NaN;
+        const t = String(v).trim().replace(',', '.');
+        if (!/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(t)) return NaN;
+        return Number(t);
+    }
+
+    // C-04, C-19, T-08: mesma validação para linha digitada e linha de CSV.
+    function validarLinha(linha) {
+        const days = paraNumero(linha && linha.days);
+        const mpa = paraNumero(linha && linha.mpa);
+        if (!Number.isFinite(days)) return { ok: false, days, mpa, motivo: 'idade vazia ou não numérica' };
+        if (!Number.isFinite(mpa)) return { ok: false, days, mpa, motivo: 'resistência vazia ou não numérica' };
+        if (days <= 0) return { ok: false, days, mpa, motivo: 'idade deve ser maior que 0' };
+        if (mpa <= 0) return { ok: false, days, mpa, motivo: 'resistência deve ser maior que 0' };
+        return { ok: true, days, mpa, motivo: null };
+    }
+
+    // Mesmo critério de mediana do CSV original (index.html 6e0bdc9, linhas 1060-1074).
+    function mediana(valores) {
+        const arr = [...valores].sort((a, b) => a - b);
+        const mid = Math.floor(arr.length / 2);
+        return (arr.length % 2) ? arr[mid] : (0.5 * (arr[mid - 1] + arr[mid]));
+    }
+
+    // C-07, C-08, T-07: agrega CPs da mesma idade pela mediana, sem mutar a entrada.
+    function agregarPorIdade(validas) {
+        const porIdade = new Map();
+        validas.forEach(l => {
+            if (!porIdade.has(l.days)) porIdade.set(l.days, { valores: [], indices: [] });
+            const g = porIdade.get(l.days);
+            g.valores.push(l.mpa);
+            g.indices.push(l.indice);
+        });
+        return [...porIdade.entries()]
+            .map(([days, g]) => ({ days, mpa: mediana(g.valores), n: g.valores.length, indices: g.indices, valores: [...g.valores] }))
+            .sort((a, b) => a.days - b.days);
+    }
+
+    function fmt(v, casas) { return v.toFixed(casas).replace('.', ','); }
+
+    // C-18, C-21: valida e resolve os parâmetros uma única vez.
+    function validarParametros(input) {
+        const erros = [];
+        const avisos = [];
+        const tenta = (fn) => { try { return fn(); } catch (e) { erros.push(e.message); return NaN; } };
+
+        const fck = tenta(() => Calculator.validateInput(input.fck, 'FCK de Projeto', 10, 150));
+
+        let sd, sdPadrao = false;
+        if (vazio(input.sd)) {
+            sd = SD_PADRAO; sdPadrao = true;
+            avisos.push({ tipo: 'sd_padrao', texto: `Desvio padrão não informado: usado o padrão ${fmt(SD_PADRAO, 1)} MPa.` });
+        } else {
+            sd = tenta(() => Calculator.validateInput(input.sd, 'Desvio Padrão', 2.0));
+        }
+
+        let s_normative;
+        const tipo = input.cementType === undefined ? '' : String(input.cementType);
+        if (tipo === 'custom') {
+            s_normative = tenta(() => Calculator.validateInput(input.customS, 'S Personalizado', 0.05, 0.6));
+        } else {
+            s_normative = parseFloat(tipo);
+            if (!(s_normative > 0)) { erros.push('Tipo de cimento inválido.'); s_normative = NaN; }
+        }
+
+        const analysisMode = input.analysisMode === undefined ? 'adjusted' : input.analysisMode;
+        if (analysisMode !== 'adjusted' && analysisMode !== 'normative') erros.push('Modo de análise inválido.');
+
+        return { erros, avisos, params: { fck, sd, sdPadrao, s_normative, cementType: tipo, analysisMode, autoDrop: !!input.autoDrop } };
+    }
+
+    function ajustar(pontos, params) {
+        // C-20: trabalha sobre cópia ordenada; nunca ordena o array de quem chamou.
+        const ordenados = pontos.map(p => ({ days: p.days, mpa: p.mpa })).sort((a, b) => a.days - b.days);
+        const avisosDados = DataValidator.checkAll(ordenados, params.s_normative);
+        const excluidos = params.autoDrop ? DataValidator.suggestDropsForFit(ordenados, params.s_normative) : [];
+        const usados = ordenados.filter(p => !excluidos.includes(p.days));
+        const analise = Calculator.performAnalysis({
+            fck: params.fck, sd: params.sd, s_normative: params.s_normative,
+            realData: usados, analysisMode: params.analysisMode
+        });
+        return { avisosDados, excluidos, usados, analise };
+    }
+
+    function preverEm(analise, t) {
+        const C = Calculator;
+        const media = C.calculateResistance(analise.fcm, analise.s, t);
+        return {
+            t,
+            estimada: Math.max(0, media - analise.offset),
+            media,
+            plausivel: analise.showPlausibleTrendCurve
+                ? Math.max(0, C.calculateResistance(analise.plausibleTrendFcm, analise.plausibleTrendS, t) - analise.plausibleTrendOffset) : null,
+            livre: analise.showFreeTrendCurve
+                ? Math.max(0, C.calculateResistance(analise.freeTrendFcm, analise.freeTrendS, t) - analise.freeTrendOffset) : null,
+            extrapolacao: t > 28            // D3: a UI esmaece e usa traço no trecho > 28 d
+        };
+    }
+
+    // D2: confiança pelo número de idades distintas e pela maior idade ensaiada.
+    function avaliarConfianca(usados) {
+        const idades = [...new Set(usados.map(p => p.days))].sort((a, b) => a - b);
+        const maior = idades.length ? idades[idades.length - 1] : 0;
+        if (idades.length < 2 || maior <= 3) {
+            return { nivel: 'baixa', rotulo: 'apenas sinal', idades, maiorIdade: maior,
+                motivo: idades.length < 2
+                    ? 'Só uma idade ensaiada: a curva não tem como ser conferida.'
+                    : 'Só idades até 3 d: nessas idades a projeção tende a superestimar.' };
+        }
+        if (maior < 14) {
+            return { nivel: 'media', rotulo: 'média', idades, maiorIdade: maior,
+                motivo: `Maior idade ensaiada: ${fmt(maior, 0)} d. A projeção melhora com o ensaio de 14 d.` };
+        }
+        return { nivel: 'boa', rotulo: 'boa', idades, maiorIdade: maior,
+            motivo: `${idades.length} idades ensaiadas, a maior com ${fmt(maior, 0)} d.` };
+    }
+
+    // D2: selo Atende / Não atende / Indicativo.
+    function avaliarSelo(fck, estimada28, real28, confianca) {
+        if (real28 !== null) {
+            const atende = real28 >= fck;
+            return { codigo: atende ? 'atende' : 'nao_atende', base: 'ensaio28',
+                texto: atende ? 'Atende pelo ensaio de 28 d' : 'Não atende pelo ensaio de 28 d',
+                motivo: `Ensaio de 28 d: ${fmt(real28, 1)} MPa contra fck = ${fmt(fck, 1)} MPa.` };
+        }
+        if (confianca.nivel === 'baixa') {
+            return { codigo: 'indicativo', base: 'indicativo', texto: 'Indicativo',
+                motivo: `${confianca.motivo} Estimada aos 28 d: ${fmt(estimada28, 1)} MPa (fck = ${fmt(fck, 1)} MPa), apenas sinal.` };
+        }
+        const atende = estimada28 >= fck;
+        return { codigo: atende ? 'atende' : 'nao_atende', base: 'estimativa',
+            texto: atende ? 'Atende' : 'Não atende',
+            motivo: `Resistência estimada conservadora aos 28 d: ${fmt(estimada28, 1)} MPa contra fck = ${fmt(fck, 1)} MPa.` };
+    }
+
+    // D4: validação honesta, sem os ensaios de 28 d (e posteriores) no ajuste.
+    function validar28(pontos, params, real28) {
+        if (real28 === null) return { calculada: false, motivo: 'Sem ensaio de 28 d para comparar.' };
+        const antes = pontos.filter(p => p.days < 28);
+        if (antes.length === 0) return { calculada: false, motivo: 'Sem ensaios antes de 28 d: não há previsão independente para comparar.' };
+        const aj = ajustar(antes, params);
+        if (aj.usados.length === 0) return { calculada: false, motivo: 'Todos os ensaios antes de 28 d foram excluídos do ajuste.' };
+        const previsto28 = preverEm(aj.analise, 28).estimada;
+        const erroPct = ((previsto28 - real28) / real28) * 100;
+        return { calculada: true, motivo: null, previsto28, real28, erroPct,
+            classificacao: erroPct > 0 ? 'superestimou' : 'conservador',
+            idadesUsadas: aj.usados.map(p => p.days), excluidos: aj.excluidos };
+    }
+
+    // T-22: comparação numérica com tolerância.
+    function compararS(s, s_normative) {
+        if (s < s_normative - TOL_S) return 'mais_rapido';
+        if (s > s_normative + TOL_S) return 'mais_lento';
+        return 'equivalente';
+    }
+
+    // T-14: texto correto do caso ruleApplied (a lógica não muda).
+    const MSG_REGRA_REFERENCIA = 'A curva de referência normativa foi adotada: com o fcm limitado ao teto fck + 1,65·sd, '
+        + 'a forma normativa ajustou os ensaios melhor que a regressão limitada a esse teto.';
+
+    /**
+     * analyze(input) -> resultado completo para a UI.
+     * input: { fck, sd, cementType ('0.25'|'0.38'|'0.20'|'custom'), customS, analysisMode ('adjusted'|'normative'),
+     *          autoDrop (bool), rows: [{days, mpa}] (CPs brutos, podem ter vazios), idadePrevisao (opcional),
+     *          idades (opcional, padrão [3,7,14,28,63]) }
+     * Com erro de parâmetro: { ok:false, erros, linhas } e nenhum resultado (C-02, C-03).
+     */
+    function analyze(input) {
+        input = input || {};
+        const vp = validarParametros(input);
+        const rows = Array.isArray(input.rows) ? input.rows : [];
+        const linhas = rows.map((r, indice) => {
+            const v = validarLinha(r);
+            return { indice, days: v.days, mpa: v.mpa, status: v.ok ? 'ok' : 'invalida', motivo: v.motivo };
+        });
+        if (vp.erros.length) return { ok: false, erros: vp.erros, linhas };
+
+        const params = vp.params;
+        const avisos = [...vp.avisos];
+        linhas.filter(l => l.status === 'invalida').forEach(l => {
+            avisos.push({ tipo: 'linha_invalida', indice: l.indice, texto: `Linha ${l.indice + 1} fora do cálculo: ${l.motivo}.` });
+        });
+        const pontos = agregarPorIdade(linhas.filter(l => l.status === 'ok'));
+        pontos.filter(p => p.n > 1).forEach(p => {
+            avisos.push({ tipo: 'agregado', days: p.days, texto: `${p.n} CPs aos ${fmt(p.days, 0)} d agregados pela mediana (${fmt(p.mpa, 2)} MPa).` });
+        });
+
+        const aj = ajustar(pontos, params);
+        const analise = { ...aj.analise, s_normative: params.s_normative };   // C-21
+        if (analise.ruleApplied) avisos.push({ tipo: 'regra_referencia', texto: MSG_REGRA_REFERENCIA });
+
+        const idades = Array.isArray(input.idades) ? input.idades : IDADES_PADRAO;
+        const previsoes = idades.map(t => preverEm(analise, t));
+        const tp = paraNumero(input.idadePrevisao);
+        const previsaoIdade = Number.isFinite(tp) && tp > 0 ? preverEm(analise, tp) : null;
+
+        const estimada28 = preverEm(analise, 28).estimada;
+        const p28 = pontos.find(p => p.days === 28);
+        const real28 = p28 ? p28.mpa : null;
+        const confianca = avaliarConfianca(aj.usados);
+
+        return {
+            ok: true, erros: [], params, linhas, pontos,
+            pontosUsados: aj.usados, excluidos: aj.excluidos,
+            avisos, avisosDados: aj.avisosDados,
+            analise, previsoes, previsaoIdade,
+            estimada28, atendeEstimada28: (Calculator.calculateResistance(analise.fcm, analise.s, 28) - analise.offset) >= params.fck,
+            real28, comparacaoS: compararS(analise.s, params.s_normative),
+            confianca, selo: avaliarSelo(params.fck, estimada28, real28, confianca),
+            validacao28: validar28(pontos, params, real28),
+            mensagens: { regraReferencia: analise.ruleApplied ? MSG_REGRA_REFERENCIA : null }
+        };
+    }
+
+    /**
+     * parseCsv(text) -> { rows, lidas, ignoradas:[{linha, conteudo, motivo}], cabecalho }
+     * C-01: linha com ";" separa por ";" (vírgula decimal); com tab separa por tab; senão por ",".
+     * C-09: 1ª linha só é cabeçalho se não for numérica; aspas e BOM removidos; linhas ignoradas listadas.
+     * C-07: só devolve linhas brutas; quem chama ACRESCENTA ao que já existe (sem mediana aqui).
+     * Valores <= 0 passam como linha e são marcados inválidos por analyze (mesma regra da tabela, C-19).
+     */
+    function parseCsv(text) {
+        const linhasTxt = String(text || '').replace(/^﻿/, '').replace(/\r/g, '').split('\n');
+        const rows = [], ignoradas = [];
+        let cabecalho = false, lidas = 0;
+        linhasTxt.forEach((bruta, i) => {
+            const conteudo = bruta.trim();
+            if (conteudo === '') return;
+            lidas++;
+            let sep = ',';
+            if (conteudo.includes(';')) sep = ';';
+            else if (conteudo.includes('\t')) sep = '\t';
+            let campos = conteudo.split(sep).map(c => c.trim().replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1').trim());
+            while (campos.length && campos[campos.length - 1] === '') campos.pop();
+            const num = c => sep === ',' ? (/^[^,]*$/.test(c) ? paraNumero(c) : NaN) : paraNumero(c);
+            const ehNumerica = campos.length === 2 && campos.every(c => Number.isFinite(num(c)));
+            if (!ehNumerica) {
+                if (lidas === 1 && !campos.some(c => Number.isFinite(paraNumero(c)))) { cabecalho = true; return; }
+                ignoradas.push({ linha: i + 1, conteudo: bruta,
+                    motivo: campos.length !== 2 ? `esperados 2 campos (idade e resistência), encontrados ${campos.length}` : 'valor não numérico' });
+                return;
+            }
+            rows.push({ days: num(campos[0]), mpa: num(campos[1]) });
+        });
+        return { rows, lidas: lidas - (cabecalho ? 1 : 0), ignoradas, cabecalho };
+    }
+
+    return {
+        Beta, DataValidator, Calculator,
+        analyze, parseCsv, validarLinha, agregarPorIdade, mediana, paraNumero, preverEm, compararS,
+        IDADES_PADRAO, SD_PADRAO, CIMENTOS, MSG_REGRA_REFERENCIA
+    };
 }));

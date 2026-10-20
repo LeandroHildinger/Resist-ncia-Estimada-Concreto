@@ -47,13 +47,38 @@ test('fixtures cobrem todos os cenários', () => {
     assert.deepEqual(fixtures.cenarios.map(c => c.id), CENARIOS.map(c => c.id));
 });
 
+// Cenários cujo número mudou de propósito no M2, com o ID do achado (antigo -> novo).
+// g2 (T-23): com s personalizado 0,60 a janela plausível ia a 0,63; agora para em 0,60.
+//   s 0,570036 -> 0,570047; offset 2,747937 -> 2,747751; previsão 28 d 48,852063 -> 48,852249;
+//   previsão 63 d 59,650083 -> 59,650497 (maior variação: 0,0004 MPa). Flags e avisos iguais.
+const MUDANCAS_M2 = {
+    g2_s_personalizado_060: { id: 'T-23', tolerancia: 1e-3, novos: { 'analise.s': 0.5700465843002271, 'analise.offset': 2.7477509228285157, 'previsao.28': 48.852249077171486 } }
+};
+
+function compararComMudanca(novoOut, antigo, m, caminho) {
+    // tudo que não é número tem de ser idêntico; números podem variar até m.tolerancia (abs) ou 1e-5 (relativo, p/ somas de curva)
+    const anda = (a, b, p) => {
+        if (typeof a === "number") { assert.ok(Math.abs(a - b) <= m.tolerancia || Math.abs(a - b) <= 1e-5 * Math.abs(b), `${p}: ${a} vs ${b} (${m.id})`); return; }
+        if (a && typeof a === 'object') { assert.deepEqual(Object.keys(a).sort(), Object.keys(b).sort(), p); for (const k in a) anda(a[k], b[k], `${p}.${k}`); return; }
+        assert.equal(a, b, p);
+    };
+    anda(novoOut, antigo, caminho);
+    for (const [k, v] of Object.entries(m.novos)) {
+        const got = k.split('.').reduce((o, x) => o[x], novoOut);
+        assert.ok(Math.abs(got - v) <= TOL * Math.max(1, Math.abs(v)), `${caminho}.${k}: ${got} != ${v} (${m.id})`);
+    }
+}
+
 for (const c of CENARIOS) {
-    test(`ouro ${c.id}: calc.js == original`, () => {
-        comparar(executar(novo, c), executar(orig, c), c.id);
+    const m = MUDANCAS_M2[c.id];
+    test(`ouro ${c.id}: calc.js == original${m ? ' (mudança ' + m.id + ')' : ''}`, () => {
+        if (m) compararComMudanca(executar(novo, c), executar(orig, c), m, c.id);
+        else comparar(executar(novo, c), executar(orig, c), c.id);
     });
-    test(`ouro ${c.id}: calc.js == fixtures_ouro.json`, () => {
+    test(`ouro ${c.id}: calc.js == fixtures_ouro.json${m ? ' (mudança ' + m.id + ')' : ''}`, () => {
         const fx = fixtures.cenarios.find(f => f.id === c.id);
-        comparar(executar(novo, c), fx.saida, c.id);
+        if (m) compararComMudanca(executar(novo, c), fx.saida, m, c.id);
+        else comparar(executar(novo, c), fx.saida, c.id);
     });
 }
 
@@ -83,4 +108,5 @@ test('calc.js funciona como script de navegador (window.EstimativaCalc)', () => 
     assert.ok(janela.EstimativaCalc && janela.EstimativaCalc.Calculator);
     const c = CENARIOS.find(x => x.id === 'a2_c45_cpv_7d_14d');
     comparar(executar(janela.EstimativaCalc, c), executar(orig, c), 'navegador');
+    assert.equal(typeof janela.EstimativaCalc.analyze, 'function');
 });
