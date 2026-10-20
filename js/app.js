@@ -405,8 +405,9 @@
         const x = r && r.ok ? r.alvo : null;
         if (!x || !x.valido) return null;
         const R = `${f1(x.alvo)} MPa`;
-        if (x.foraDoHorizonte) {   // decisão do Leandro (20/10): nada de "dia 47.158"
-            return { resposta: `Não atinge até ${fd(x.horizonte)} d`, aviso: null,
+        const AVISO_EXTRAP = 'Acima de 28 d: extrapolação, fora do escopo da NBR 6118. O ganho depois dos 28 d depende de cura e umidade e não é garantido.';
+        if (x.foraDoHorizonte) {   // decisão do Leandro (20/10): nada de "dia 47.158"; o valor aos 90 d também é extrapolação
+            return { resposta: `Não atinge até ${fd(x.horizonte)} d`, aviso: AVISO_EXTRAP,
                 detalhe: `A projeção conservadora não chega a ${R} até ${fd(x.horizonte)} d: aos ${fd(x.horizonte)} d ela está em ${f1(x.projecaoHorizonte)} MPa`
                     + (x.naoAtinge ? ` e tende a ${f1(x.assintota)} MPa.` : '.') };
         }
@@ -415,7 +416,7 @@
         if (x.jaAtingido) detalhe += ` Pela projeção, o alvo já foi alcançado até o ensaio mais recente usado no ajuste (${fd(x.maiorIdade)} d).`;
         if (r.confianca.nivel === 'baixa') detalhe += ` Confiança ${r.confianca.rotulo}: use como indicação e confirme com novo ensaio.`;
         return { resposta: `≈ dia ${x.diaInteiro.toLocaleString('pt-BR')}`, detalhe,
-            aviso: x.extrapolacao ? 'Dia acima de 28 d: extrapolação, fora do escopo da NBR 6118. O ganho depois dos 28 d depende de cura e umidade e não é garantido.' : null };
+            aviso: x.extrapolacao ? AVISO_EXTRAP : null };
     }
     function renderAlvo() {
         const x = r.alvo, t = textoAlvo();
