@@ -155,7 +155,7 @@ test('C-02/C-03: erro de parâmetro devolve ok:false, erros e NENHUM resultado',
     assert.equal(analyze(base(valido, { analysisMode: 'x' })).ok, false);
 });
 test('C-18: sd vazio = 4,0 com aviso; sd 0 é erro; sd < 2 é erro', () => {
-    for (const sd of ['', null, undefined, NaN]) {
+    for (const sd of ['', '  ', null, undefined]) {   // A2-04: NaN numérico deixou de ser 'não informado'
         const r = analyze(base(valido, { sd }));
         assert.equal(r.ok, true);
         assert.equal(r.params.sd, 4);
@@ -177,7 +177,7 @@ test('C-20: analyze não muta a entrada (linhas congeladas, ordem preservada)', 
 });
 test('C-21: s_normative resolvido uma vez e devolvido em params e analise', () => {
     const r = analyze(base(valido, { cementType: 'custom', customS: '0,33' }));
-    assert.equal(r.ok, false, 'campo s personalizado segue a validação original (parseFloat): "0,33" vira 0 e é rejeitado');
+    assert.equal(r.params.s_normative, 0.33, 'A2-04: vírgula decimal aceita no s personalizado');
     const r2 = analyze(base(valido, { cementType: 'custom', customS: 0.33 }));
     assert.equal(r2.params.s_normative, 0.33);
     assert.equal(r2.analise.s_normative, 0.33);
@@ -313,4 +313,59 @@ test('D3: previsões trazem extrapolacao = t > 28; idadePrevisao opcional', () =
 test('caso real C45 via analyze: 32,04 aos 14 d (só 7 d) e 34,18 aos 28 d (7 d + 14 d)', () => {
     assert.equal(analyze(base([{ days: 7, mpa: 28.5 }])).previsoes.find(p => p.t === 14).estimada.toFixed(2), '32.04');
     assert.equal(analyze(base([{ days: 7, mpa: 28.5 }, { days: 14, mpa: 31.7 }])).estimada28.toFixed(2), '34.18');
+});
+
+// ---------------------------------------------------------------------------
+// M2.1: ajustes da auditoria (parecer_M2_nucleo.md, A2-xx)
+// ---------------------------------------------------------------------------
+test('A2-04: parâmetros em texto usam vírgula decimal; lixo é erro (nada de parseFloat silencioso)', () => {
+    const rows = [{ days: 7, mpa: 36 }, { days: 14, mpa: 41.05 }];
+    const num = analyze(base(rows, { fck: 45.5 })), txt = analyze(base(rows, { fck: '45,5' }));
+    assert.equal(txt.params.fck, 45.5);
+    assert.equal(txt.selo.codigo, num.selo.codigo);
+    perto(txt.estimada28, num.estimada28, 'estimada28');
+    assert.equal(analyze(base(rows, { sd: '4,5' })).params.sd, 4.5);
+    assert.equal(analyze(base(rows, { sd: '4,5' })).analise.fcm_base, 45 + 1.65 * 4.5);
+    assert.equal(analyze(base(rows, { cementType: 'custom', customS: '0,33' })).params.s_normative, 0.33);
+    for (const ruim of [{ fck: '45abc' }, { sd: '4,5x' }, { sd: NaN }, { cementType: 'custom', customS: '0,3a' }]) {
+        const r = analyze(base(rows, ruim));
+        assert.equal(r.ok, false, JSON.stringify(ruim));
+        assert.ok(r.erros.some(e => /deve ser um número/.test(e)), JSON.stringify(r.erros));
+    }
+});
+test('A2-07: CSV com vírgula decimal entre aspas e separador vírgula', () => {
+    assert.deepEqual(parseCsv('idade,fc\n7,"25,5"\n14,"30,1"').rows, [{ days: 7, mpa: 25.5 }, { days: 14, mpa: 30.1 }]);
+    assert.deepEqual(parseCsv('"7";"25,5"').rows, [{ days: 7, mpa: 25.5 }]);
+    const r = parseCsv('"7";"25;5"');
+    assert.equal(r.rows.length, 0);
+    assert.equal(r.ignoradas.length, 1);
+});
+test('A2-02: sem ensaios, confiança e selo não falam em "uma idade" nem dão estimativa', () => {
+    const r = analyze(base([]));
+    assert.equal(r.confianca.rotulo, 'sem ensaios');
+    assert.doesNotMatch(r.confianca.motivo, /uma idade/);
+    assert.equal(r.selo.codigo, 'sem_dados');
+    assert.doesNotMatch(r.selo.motivo, /\d/);
+});
+test('A2-03: idade fracionária não é arredondada nos textos', () => {
+    const m = analyze(base([{ days: 3, mpa: 20 }, { days: 13.5, mpa: 30 }]));
+    assert.equal(m.confianca.nivel, 'media');
+    assert.match(m.confianca.motivo, /13,5 d/);
+    const g = analyze(base([{ days: 3.5, mpa: 20 }, { days: 3.5, mpa: 22 }]));
+    assert.ok(g.avisos.some(a => /aos 3,5 d/.test(a.texto)));
+    assert.match(analyze(base([{ days: 3, mpa: 20 }, { days: 14, mpa: 30 }])).confianca.motivo, /14 d/);
+});
+test('A2-05: cimento fora da lista é erro; 0.2 numérico equivale a "0.20"', () => {
+    for (const c of ['5', '0.3', 'abc', '', undefined]) assert.equal(analyze(base(valido, { cementType: c })).ok, false, String(c));
+    const r = analyze(base(valido, { cementType: 0.2 }));
+    assert.equal(r.ok, true);
+    assert.equal(r.params.cementType, '0.20');
+    assert.equal(r.params.s_normative, 0.2);
+});
+test('A2-06: autoDrop só liga com true ou "true"', () => {
+    const rows = [{ days: 3, mpa: 22 }, { days: 7, mpa: 35 }, { days: 14, mpa: 30 }];
+    assert.deepEqual(analyze(base(rows, { fck: 40, autoDrop: 'false' })).excluidos, []);
+    assert.deepEqual(analyze(base(rows, { fck: 40, autoDrop: 1 })).excluidos, []);
+    assert.deepEqual(analyze(base(rows, { fck: 40, autoDrop: 'true' })).excluidos, [7]);
+    assert.deepEqual(analyze(base(rows, { fck: 40, autoDrop: true })).excluidos, [7]);
 });

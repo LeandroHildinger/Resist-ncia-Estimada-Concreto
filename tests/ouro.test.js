@@ -50,7 +50,7 @@ test('fixtures cobrem todos os cenários', () => {
 // Cenários cujo número mudou de propósito no M2, com o ID do achado (antigo -> novo).
 // g2 (T-23): com s personalizado 0,60 a janela plausível ia a 0,63; agora para em 0,60.
 //   s 0,570036 -> 0,570047; offset 2,747937 -> 2,747751; previsão 28 d 48,852063 -> 48,852249;
-//   previsão 63 d 59,650083 -> 59,650497 (maior variação: 0,0004 MPa). Flags e avisos iguais.
+//   previsão 63 d 59,650083 -> 59,650497 (maior variação: 0,0006 MPa, curva plausível aos 63 d; A2-01). Flags e avisos iguais.
 const MUDANCAS_M2 = {
     g2_s_personalizado_060: { id: 'T-23', tolerancia: 1e-3, novos: { 'analise.s': 0.5700465843002271, 'analise.offset': 2.7477509228285157, 'previsao.28': 48.852249077171486 } }
 };

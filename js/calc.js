@@ -315,6 +315,16 @@
     }
 
     function fmt(v, casas) { return v.toFixed(casas).replace('.', ','); }
+    // A2-03: idade com até 1 casa, sem ",0" quando inteira (13,5 d não vira 14 d).
+    function fmtIdade(v) { return Number.isInteger(v) ? String(v) : fmt(Math.round(v * 10) / 10, 1); }
+
+    // A2-04: parâmetro em texto passa por paraNumero (vírgula decimal; lixo -> NaN -> erro),
+    // nunca por parseFloat ('45,5' virava 45 e '45abc' virava 45 em silêncio).
+    function numParam(v) { return typeof v === 'string' ? paraNumero(v) : v; }
+    // A2-04: sd "não informado" é só ausente ou texto em branco; NaN numérico é erro.
+    const sdAusente = v => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+    // A2-05: só os cimentos da lista (ou 'custom').
+    const S_CIMENTOS = { '0.25': 0.25, '0.38': 0.38, '0.20': 0.20 };
 
     // C-18, C-21: valida e resolve os parâmetros uma única vez.
     function validarParametros(input) {
@@ -322,29 +332,30 @@
         const avisos = [];
         const tenta = (fn) => { try { return fn(); } catch (e) { erros.push(e.message); return NaN; } };
 
-        const fck = tenta(() => Calculator.validateInput(input.fck, 'FCK de Projeto', 10, 150));
+        const fck = tenta(() => Calculator.validateInput(numParam(input.fck), 'FCK de Projeto', 10, 150));
 
         let sd, sdPadrao = false;
-        if (vazio(input.sd)) {
+        if (sdAusente(input.sd)) {
             sd = SD_PADRAO; sdPadrao = true;
             avisos.push({ tipo: 'sd_padrao', texto: `Desvio padrão não informado: usado o padrão ${fmt(SD_PADRAO, 1)} MPa.` });
         } else {
-            sd = tenta(() => Calculator.validateInput(input.sd, 'Desvio Padrão', 2.0));
+            sd = tenta(() => Calculator.validateInput(numParam(input.sd), 'Desvio Padrão', 2.0));
         }
 
         let s_normative;
-        const tipo = input.cementType === undefined ? '' : String(input.cementType);
+        let tipo = input.cementType === undefined ? '' : String(input.cementType).trim();
         if (tipo === 'custom') {
-            s_normative = tenta(() => Calculator.validateInput(input.customS, 'S Personalizado', 0.05, 0.6));
+            s_normative = tenta(() => Calculator.validateInput(numParam(input.customS), 'S Personalizado', 0.05, 0.6));
         } else {
-            s_normative = parseFloat(tipo);
-            if (!(s_normative > 0)) { erros.push('Tipo de cimento inválido.'); s_normative = NaN; }
+            const chave = Object.keys(S_CIMENTOS).find(k => S_CIMENTOS[k] === Number(tipo));   // aceita '0.2' e 0.2
+            if (tipo === '' || chave === undefined) { erros.push('Tipo de cimento inválido.'); s_normative = NaN; }
+            else { tipo = chave; s_normative = S_CIMENTOS[chave]; }
         }
 
         const analysisMode = input.analysisMode === undefined ? 'adjusted' : input.analysisMode;
         if (analysisMode !== 'adjusted' && analysisMode !== 'normative') erros.push('Modo de análise inválido.');
 
-        return { erros, avisos, params: { fck, sd, sdPadrao, s_normative, cementType: tipo, analysisMode, autoDrop: !!input.autoDrop } };
+        return { erros, avisos, params: { fck, sd, sdPadrao, s_normative, cementType: tipo, analysisMode, autoDrop: input.autoDrop === true || input.autoDrop === 'true' } };   // A2-06
     }
 
     function ajustar(pontos, params) {
@@ -379,6 +390,10 @@
     function avaliarConfianca(usados) {
         const idades = [...new Set(usados.map(p => p.days))].sort((a, b) => a - b);
         const maior = idades.length ? idades[idades.length - 1] : 0;
+        if (idades.length === 0) {   // A2-02
+            return { nivel: 'baixa', rotulo: 'sem ensaios', idades, maiorIdade: 0,
+                motivo: 'Sem ensaios: só a curva de referência (fcm alvo de dosagem), sem estimativa a partir de CPs.' };
+        }
         if (idades.length < 2 || maior <= 3) {
             return { nivel: 'baixa', rotulo: 'apenas sinal', idades, maiorIdade: maior,
                 motivo: idades.length < 2
@@ -387,14 +402,18 @@
         }
         if (maior < 14) {
             return { nivel: 'media', rotulo: 'média', idades, maiorIdade: maior,
-                motivo: `Maior idade ensaiada: ${fmt(maior, 0)} d. A projeção melhora com o ensaio de 14 d.` };
+                motivo: `Maior idade ensaiada: ${fmtIdade(maior)} d. A projeção melhora com o ensaio de 14 d.` };
         }
         return { nivel: 'boa', rotulo: 'boa', idades, maiorIdade: maior,
-            motivo: `${idades.length} idades ensaiadas, a maior com ${fmt(maior, 0)} d.` };
+            motivo: `${idades.length} idades ensaiadas, a maior com ${fmtIdade(maior)} d.` };
     }
 
     // D2: selo Atende / Não atende / Indicativo.
     function avaliarSelo(fck, estimada28, real28, confianca) {
+        if (real28 === null && confianca.idades.length === 0) {   // A2-02
+            return { codigo: 'sem_dados', base: 'sem_dados', texto: 'Sem ensaios',
+                motivo: 'Adicione ensaios para estimar; a curva exibida é só a referência da norma.' };
+        }
         if (real28 !== null) {
             const atende = real28 >= fck;
             return { codigo: atende ? 'atende' : 'nao_atende', base: 'ensaio28',
@@ -460,7 +479,7 @@
         });
         const pontos = agregarPorIdade(linhas.filter(l => l.status === 'ok'));
         pontos.filter(p => p.n > 1).forEach(p => {
-            avisos.push({ tipo: 'agregado', days: p.days, texto: `${p.n} CPs aos ${fmt(p.days, 0)} d agregados pela mediana (${fmt(p.mpa, 2)} MPa).` });
+            avisos.push({ tipo: 'agregado', days: p.days, texto: `${p.n} CPs aos ${fmtIdade(p.days)} d agregados pela mediana (${fmt(p.mpa, 2)} MPa).` });
         });
 
         const aj = ajustar(pontos, params);
@@ -497,6 +516,21 @@
      * C-07: só devolve linhas brutas; quem chama ACRESCENTA ao que já existe (sem mediana aqui).
      * Valores <= 0 passam como linha e são marcados inválidos por analyze (mesma regra da tabela, C-19).
      */
+    function dividirComAspas(linha, sep) {
+        const campos = [];
+        let atual = '', aspas = false;
+        for (let i = 0; i < linha.length; i++) {
+            const ch = linha[i];
+            if (ch === '"') {
+                if (aspas && linha[i + 1] === '"') { atual += '"'; i++; }
+                else aspas = !aspas;
+            } else if (ch === sep && !aspas) { campos.push(atual); atual = ''; }
+            else atual += ch;
+        }
+        campos.push(atual);
+        return campos;
+    }
+
     function parseCsv(text) {
         const linhasTxt = String(text || '').replace(/^﻿/, '').replace(/\r/g, '').split('\n');
         const rows = [], ignoradas = [];
@@ -505,12 +539,14 @@
             const conteudo = bruta.trim();
             if (conteudo === '') return;
             lidas++;
+            // A2-07: separador detectado fora das aspas; split respeita aspas (7,"25,5" -> 7 e 25,5).
+            const foraAspas = conteudo.replace(/"[^"]*"/g, '');
             let sep = ',';
-            if (conteudo.includes(';')) sep = ';';
-            else if (conteudo.includes('\t')) sep = '\t';
-            let campos = conteudo.split(sep).map(c => c.trim().replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1').trim());
+            if (foraAspas.includes(';')) sep = ';';
+            else if (foraAspas.includes('\t')) sep = '\t';
+            let campos = dividirComAspas(conteudo, sep).map(c => c.trim().replace(/^'(.*)'$/, '$1').trim());
             while (campos.length && campos[campos.length - 1] === '') campos.pop();
-            const num = c => sep === ',' ? (/^[^,]*$/.test(c) ? paraNumero(c) : NaN) : paraNumero(c);
+            const num = c => paraNumero(c);
             const ehNumerica = campos.length === 2 && campos.every(c => Number.isFinite(num(c)));
             if (!ehNumerica) {
                 if (lidas === 1 && !campos.some(c => Number.isFinite(paraNumero(c)))) { cabecalho = true; return; }
