@@ -11,9 +11,11 @@
     const CHAVE = 'estimativaFck.v2';
     const VERSAO = '2.0';
 
-    const PADRAO = { fck: '', sd: '', cementType: '0.25', customS: '0,25', analysisMode: 'adjusted', autoDrop: false, rows: [], idadePrev: '28', exemplo: false };
+    const PADRAO = { fck: '', sd: '', cementType: '0.25', customS: '0,25', analysisMode: 'adjusted', autoDrop: false, rows: [], idadePrev: '28', exemplo: false,
+        ident: { obra: '', elemento: '', lote: '', laboratorio: '', responsavel: '' } };
     const EXEMPLO = { fck: '45', sd: '4,0', cementType: '0.20', customS: '0,25', analysisMode: 'adjusted', autoDrop: false,
-        rows: [{ days: 3, mpa: 30 }, { days: 7, mpa: 38 }, { days: 14, mpa: 44 }], idadePrev: '28', exemplo: true };
+        rows: [{ days: 3, mpa: 30 }, { days: 7, mpa: 38 }, { days: 14, mpa: 44 }], idadePrev: '28', exemplo: true,
+        ident: { obra: 'Exemplo', elemento: '', lote: 'C45 CP V-ARI', laboratorio: '', responsavel: '' } };
     const NOMES_CIMENTO = { '0.25': 'CP I / CP II', '0.38': 'CP III / CP IV', '0.20': 'CP V-ARI', custom: 's personalizado' };
 
     let estado = clonar(PADRAO);
@@ -56,6 +58,9 @@
             for (const k of Object.keys(PADRAO)) if (k in o) novo[k] = o[k];
             if (!Array.isArray(novo.rows)) novo.rows = [];
             novo.rows = novo.rows.filter(x => x && typeof x === 'object').map(x => ({ days: x.days, mpa: x.mpa }));
+            const id = (o.ident && typeof o.ident === 'object') ? o.ident : {};
+            novo.ident = {};
+            Object.keys(PADRAO.ident).forEach(k => { novo.ident[k] = typeof id[k] === 'string' ? id[k] : ''; });
             estado = novo;
         } catch (e) { /* ignora estado corrompido */ }
     }
@@ -113,6 +118,7 @@
         $('modo').value = estado.analysisMode;
         $('autoDrop').checked = !!estado.autoDrop;
         $('campoS').hidden = estado.cementType !== 'custom';
+        Object.keys(PADRAO.ident).forEach(k => { $('id_' + k).value = (estado.ident && estado.ident[k]) || ''; });
     }
     function ligarCampos() {
         CAMPOS.forEach(({ id, chave }) => {
@@ -131,6 +137,10 @@
         });
         $('modo').addEventListener('change', e => { estado.analysisMode = e.target.value; mudou(); });
         $('autoDrop').addEventListener('change', e => { estado.autoDrop = e.target.checked; mudou(); });
+        // Identificação: só vai para o PDF; não recalcula.
+        Object.keys(PADRAO.ident).forEach(k => {
+            $('id_' + k).addEventListener('input', e => { estado.ident = estado.ident || {}; estado.ident[k] = e.target.value; salvar(); });
+        });
     }
 
     function textoErro(msg) {
@@ -400,10 +410,9 @@
     }
 
     // ------------------------------------------------------------------ detalhes técnicos + equações
-    function latexNum(v, n) { return v.toFixed(n).replace('.', '{,}'); }
-    function renderEq(el, tex) {
-        if (window.katex) { try { window.katex.render(tex, el, { throwOnError: false, displayMode: true }); return; } catch (e) { /* cai no texto */ } }
-        el.textContent = tex;
+    // Equações em HTML simples (sem KaTeX: uma dependência e ~60 arquivos de fonte a menos para o offline).
+    function eqHtml(nome, fcm, sv, desconto) {
+        return `<span class="eq">f<sub>${nome}</sub>(t) = ${fn(fcm, 2)} · e<sup>${fn(sv, 3)} · (1 − √(28/t))</sup>${desconto === null ? '' : ` − ${fn(desconto, 2)}`}</span>`;
     }
     function renderDetalhes() {
         const sec = $('detalhes');
@@ -431,13 +440,12 @@
         if (a.showPlausibleTrendCurve) notas.push(`Os ensaios indicam potencial ${f1(a.tendencySuperiority)}% acima do previsto pela norma aos 28 d; por segurança, a projeção conservadora não usa esse ganho.`);
         $('detNotas').innerHTML = notas.map(t => `<p class="msg msg-info">${esc(t)}</p>`).join('');
 
-        const exp = s => `e^{${latexNum(s, 3)}\\left(1-\\sqrt{28/t}\\right)}`;
-        renderEq($('eqRef'), `f_{cm,ref}(t) = ${latexNum(a.fcm_base, 2)}\\cdot ${exp(p.s_normative)}`);
-        renderEq($('eqEst'), `f_{c,est}(t) = ${latexNum(a.fcm, 2)}\\cdot ${exp(a.s)} - ${latexNum(a.offset, 2)}`);
+        $('eqRef').innerHTML = eqHtml('cm,ref', a.fcm_base, p.s_normative, null);
+        $('eqEst').innerHTML = eqHtml('c,est', a.fcm, a.s, a.offset);
         $('eqTendBloco').hidden = !a.showPlausibleTrendCurve;
-        if (a.showPlausibleTrendCurve) renderEq($('eqTend'), `f_{c,tend}(t) = ${latexNum(a.plausibleTrendFcm, 2)}\\cdot ${exp(a.plausibleTrendS)} - ${latexNum(a.plausibleTrendOffset, 2)}`);
+        if (a.showPlausibleTrendCurve) $('eqTend').innerHTML = eqHtml('c,tend', a.plausibleTrendFcm, a.plausibleTrendS, a.plausibleTrendOffset);
         $('eqLivreBloco').hidden = !a.showFreeTrendCurve;
-        if (a.showFreeTrendCurve) renderEq($('eqLivre'), `f_{c,livre}(t) = ${latexNum(a.freeTrendFcm, 2)}\\cdot ${exp(a.freeTrendS)} - ${latexNum(a.freeTrendOffset, 2)}`);
+        if (a.showFreeTrendCurve) $('eqLivre').innerHTML = eqHtml('c,livre', a.freeTrendFcm, a.freeTrendS, a.freeTrendOffset);
     }
 
     // ------------------------------------------------------------------ gráfico (U-14, C-06, C-16, D3)
@@ -452,12 +460,23 @@
             ctx.fillStyle = opts.fundo;
             ctx.fillRect(x28, ca.top, ca.right - x28, ca.bottom - ca.top);
             ctx.fillStyle = opts.cor;
-            ctx.font = '600 11px ' + cssVar('--font');
+            const t = 11 * (opts.escala || 1);
+            ctx.font = `600 ${t}px ` + (cssVar('--font') || 'sans-serif');
             ctx.textAlign = 'left';
-            ctx.fillText('extrapolação:', x28 + 6, ca.bottom - 22);
-            ctx.font = '11px ' + cssVar('--font');
-            ctx.fillText('fora do escopo da NBR 6118', x28 + 6, ca.bottom - 8);
+            ctx.fillText('extrapolação:', x28 + 6, ca.bottom - 2 * t);
+            ctx.font = `${t}px ` + (cssVar('--font') || 'sans-serif');
+            ctx.fillText('fora do escopo da NBR 6118', x28 + 6, ca.bottom - 0.7 * t);
             ctx.restore();
+        }
+    };
+
+    // Fundo opaco (usado no gráfico do PDF).
+    const pluginFundo = {
+        id: 'fundo',
+        beforeDraw(chart, args, opts) {
+            if (!opts || !opts.cor) return;
+            const { ctx, width, height } = chart;
+            ctx.save(); ctx.fillStyle = opts.cor; ctx.fillRect(0, 0, width, height); ctx.restore();
         }
     };
 
@@ -466,8 +485,11 @@
             mensagemGrafico('Gráfico indisponível: a biblioteca não carregou (sem conexão?). O cálculo continua valendo.');
             return;
         }
+        grafico = novoGrafico($('grafico'), true);
+    }
+    function novoGrafico(canvas, responsivo) {
         const linha = (label, extra) => ({ label, data: [], type: 'line', borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 0, pointStyle: 'line', tension: 0, fill: false, ...extra });
-        grafico = new window.Chart($('grafico').getContext('2d'), {
+        return new window.Chart(canvas.getContext('2d'), {
             type: 'line',
             data: { datasets: [
                 linha('Curva esperada pela norma (NBR 6118)', { borderWidth: 2, borderDash: [5, 5] }),
@@ -477,9 +499,9 @@
                 { type: 'scatter', label: 'Ensaios (CPs)', data: [], pointRadius: 6, pointHoverRadius: 8, pointBorderWidth: 2, order: -1 },
                 { type: 'scatter', label: 'Ignorado no ajuste', data: [], pointRadius: 7, pointHoverRadius: 9, pointBorderWidth: 2, pointStyle: 'rectRot', order: -1 }
             ] },
-            plugins: [pluginExtrap],
+            plugins: [pluginExtrap, pluginFundo],
             options: {
-                responsive: true, maintainAspectRatio: false, animation: false,
+                responsive: responsivo, maintainAspectRatio: false, animation: false, devicePixelRatio: responsivo ? undefined : 1,
                 parsing: false, normalized: true,
                 interaction: { mode: 'nearest', intersect: false },
                 scales: {
@@ -517,14 +539,29 @@
         };
     }
 
-    function renderGrafico() {
-        if (!grafico) return;
-        const ds = grafico.data.datasets;
-        const cores = {
+    function coresTela() {
+        return {
             ref: cssVar('--chart-ref'), proj: cssVar('--chart-proj'), tend: cssVar('--chart-tend'), livre: cssVar('--chart-livre'),
             ensaio: cssVar('--chart-ensaio'), fck: cssVar('--chart-fck'), grade: cssVar('--chart-grid'), texto: cssVar('--ink-2'),
             superficie: cssVar('--surface'), extrap: cssVar('--chart-extrap'), aviso: cssVar('--warn-soft'), ink: cssVar('--ink')
         };
+    }
+    // Paleta fixa do tema claro para o gráfico do PDF (independe do tema da tela).
+    const CORES_PDF = { ref: '#8794a1', proj: '#0f4c5c', tend: '#2f8f6b', livre: '#7a4fb5', ensaio: '#17212b', fck: '#b26b00',
+        grade: 'rgba(23, 33, 43, 0.10)', texto: '#4a5866', superficie: '#ffffff', extrap: 'rgba(23, 33, 43, 0.05)', aviso: '#fff4dc', ink: '#17212b' };
+
+    function renderGrafico() {
+        if (!grafico) return;
+        const msg = pintarGrafico(grafico, coresTela(), $('grafico').clientWidth < 520, 1);
+        mensagemGrafico(msg);
+        grafico.update('none');
+    }
+
+    // Preenche um gráfico com o resultado atual; devolve a mensagem de estado ('' quando há curva).
+    function pintarGrafico(chart, cores, estreito, escala) {
+        let msg = '';
+        const fs = n => ({ size: Math.round(n * escala) });
+        const ds = chart.data.datasets;
         ds.forEach(d => { d.data = []; });
         estiloLinha(ds[0], cores.ref, [5, 5]);
         estiloLinha(ds[1], cores.proj);
@@ -533,33 +570,39 @@
         ds[4].backgroundColor = cores.ensaio; ds[4].borderColor = cores.superficie;
         ds[5].backgroundColor = cores.superficie; ds[5].borderColor = cores.ensaio;
 
-        const o = grafico.options;
+        const o = chart.options;
         [o.scales.x, o.scales.y].forEach(ax => {
             ax.grid = { color: cores.grade };
             ax.ticks.color = cores.texto;
+            ax.ticks.font = fs(12);
             ax.ticks.callback = v => Number(v).toLocaleString('pt-BR');
             ax.title.color = cores.texto;
+            ax.title.font = fs(12);
         });
         o.plugins.legend.labels.color = cores.texto;
-        const estreito = $('grafico').clientWidth < 520;
         o.scales.x.ticks.stepSize = estreito ? 14 : 7;
-        o.plugins.legend.labels.font = { size: estreito ? 11 : 12 };
-        o.plugins.legend.labels.padding = estreito ? 8 : 12;
-        o.plugins.extrapolacao = { ativo: false, fundo: cores.extrap, cor: cores.texto };
+        o.plugins.legend.labels.font = fs(estreito ? 11 : 12);
+        o.plugins.legend.labels.padding = Math.round((estreito ? 8 : 12) * escala);
+        o.plugins.legend.labels.boxWidth = Math.round(10 * escala);
+        o.plugins.extrapolacao = { ativo: false, fundo: cores.extrap, cor: cores.texto, escala };
+        o.plugins.fundo = { cor: escala > 1 ? cores.superficie : null };
+        ds.forEach(d => {
+            if (d.type === 'scatter') { d.pointRadius = (d.pointStyle === 'rectRot' ? 7 : 6) * escala; d.pointBorderWidth = 2 * escala; }
+            else { if (!d.larguraBase) d.larguraBase = d.borderWidth; d.borderWidth = d.larguraBase * escala; }
+        });
         const anot = {};
 
         if (!r || !r.ok) {
             const inicio = String(estado.fck).trim() === '' && estado.rows.length === 0;
-            mensagemGrafico(inicio ? 'Informe o fck de projeto para ver a curva esperada pela norma.' : 'Corrija os parâmetros para ver o gráfico.');
+            msg = inicio ? 'Informe o fck de projeto para ver a curva esperada pela norma.' : 'Corrija os parâmetros para ver o gráfico.';
         } else {
             const a = r.analise;
             ds[0].data = curva(a.fcm_base, r.params.s_normative, 0);
             anot.fck = { type: 'line', display: true, yMin: r.params.fck, yMax: r.params.fck, borderColor: cores.fck, borderWidth: 2, borderDash: [10, 5],
-                label: { enabled: true, content: `fck = ${fd(r.params.fck)} MPa`, position: 'start', backgroundColor: cores.aviso, color: cores.ink, font: { size: 12, weight: '600' } } };
+                label: { enabled: true, content: `fck = ${fd(r.params.fck)} MPa`, position: 'start', backgroundColor: cores.aviso, color: cores.ink, font: { size: Math.round(12 * escala), weight: '600' } } };
             if (!temPontos()) {
-                mensagemGrafico(estado.rows.length ? 'Nenhum ensaio válido para estimar.' : 'Adicione os resultados dos CPs para estimar.');
+                msg = estado.rows.length ? 'Nenhum ensaio válido para estimar.' : 'Adicione os resultados dos CPs para estimar.';
             } else {
-                mensagemGrafico('');
                 o.plugins.extrapolacao.ativo = true;
                 ds[1].data = curva(a.fcm, a.s, a.offset);
                 if (a.showPlausibleTrendCurve) ds[2].data = curva(a.plausibleTrendFcm, a.plausibleTrendS, a.plausibleTrendOffset);
@@ -569,14 +612,35 @@
                 ds[5].data = validas.filter(l => r.excluidos.includes(l.days)).map(l => ({ x: l.days, y: l.mpa }));
                 if (r.real28 !== null) {   // C-06: só existe com ensaio real de 28 d
                     anot.real28 = { type: 'line', display: true, scaleID: 'x', value: 28, borderColor: comAlfa(cores.ensaio.startsWith('#') ? cores.ensaio : '#17212b', 0.35), borderWidth: 1.5, borderDash: [2, 3],
-                        label: { enabled: true, content: `28 d real: ${f1(r.real28)} MPa`, position: 'end', backgroundColor: cores.superficie, color: cores.ink, font: { size: 11 } } };
+                        label: { enabled: true, content: `28 d real: ${f1(r.real28)} MPa`, position: 'start', backgroundColor: cores.superficie, color: cores.ink, font: { size: Math.round(11 * escala) } } };
                 }
                 const maxY = Math.max(r.params.fck, ...ds[4].data.map(p => p.y), ...ds[5].data.map(p => p.y), ...ds[1].data.map(p => p.y));
                 o.scales.y.suggestedMax = Math.ceil(maxY * 1.1 / 5) * 5;
             }
         }
         o.plugins.annotation.annotations = anot;
-        grafico.update('none');
+        return msg;
+    }
+
+    // Imagem do gráfico para o PDF: canvas fora da tela, tamanho fixo, paleta clara.
+    function imagemGraficoPdf() {
+        if (typeof window.Chart === 'undefined') return null;
+        const caixa = document.createElement('div');
+        Object.assign(caixa.style, { position: 'fixed', left: '-10000px', top: '0', width: '1500px', height: '820px' });
+        const cv = document.createElement('canvas');
+        cv.width = 1500; cv.height = 820;
+        caixa.appendChild(cv);
+        document.body.appendChild(caixa);
+        try {
+            const ch = novoGrafico(cv, false);
+            pintarGrafico(ch, CORES_PDF, false, 2);
+            ch.update('none');
+            const url = ch.toBase64Image('image/jpeg', 0.92);   // JPEG: PDF leve (PNG 1500x900 deixava o arquivo com ~5 MB)
+            ch.destroy();
+            return url;
+        } finally {
+            document.body.removeChild(caixa);
+        }
     }
 
     // ------------------------------------------------------------------ relatório interpretativo
@@ -596,7 +660,7 @@
         const comp = { mais_rapido: '<b>mais rápido</b> que o previsto pela norma', mais_lento: '<b>mais lento</b> que o previsto pela norma', equivalente: '<b>equivalente</b> ao previsto pela norma' }[r.comparacaoS];
         const nivel = a.fcm >= a.fcm_base - 1e-9
             ? `os ensaios atingem ou superam o fcm alvo de dosagem (fck + 1,65·sd = ${f1(a.fcm_base)} MPa); por segurança, a projeção fica limitada a esse alvo`
-            : `a curva média ajustada aos ensaios aos 28 d (${f1(a.fcm)} MPa) está <b>abaixo</b> do fcm alvo de dosagem (fck + 1,65·sd = ${f1(a.fcm_base)} MPa)`;
+            : `a curva média ajustada, aos 28 d (${f1(a.fcm)} MPa), está <b>abaixo</b> do fcm alvo de dosagem (fck + 1,65·sd = ${f1(a.fcm_base)} MPa)`;
         const avisos = [...r.avisos.filter(x => x.tipo !== 'regra_referencia').map(x => x.texto), ...r.avisosDados.map(avisoAmigavel)];
         if (r.excluidos.length) avisos.push(`Ignorado no ajuste: ${r.excluidos.map(fd).join(', ')} d.`);
         const v = r.validacao28;
@@ -660,48 +724,202 @@
         m.textContent = texto || '';
     }
 
-    // ------------------------------------------------------------------ PDF (refeito no M4; aqui com os novos rótulos)
+    // ------------------------------------------------------------------ PDF rastreável (M4; jsPDF com texto nativo, C-14/C-15/C-23/C-25)
+    // C-23: a fonte padrão do jsPDF só cobre Latin-1; troca o que estiver fora.
+    function latin1(t) {
+        return String(t)
+            .replace(/[−–—]/g, '-').replace(/≥/g, '>=').replace(/≤/g, '<=')
+            .replace(/√/g, 'raiz').replace(/β/g, 'beta').replace(/Δ/g, 'Delta').replace(/…/g, '...')
+            .replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/✕/g, 'x')
+            .replace(/[^\x00-\xff]/g, '?');
+    }
+    function horaLocal() {
+        const d = new Date();
+        return `${d.toLocaleDateString('pt-BR')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+    function statusLinha(l) {
+        if (l.status !== 'ok') return `inválido: ${l.motivo}`;
+        if (r.excluidos.includes(l.days)) return 'excluído do ajuste (destoa do vizinho)';
+        const pt = r.pontos.find(x => x.days === l.days);
+        if (pt && pt.n > 1) return `usado (mediana de ${pt.n} CPs aos ${fd(pt.days)} d: ${fn(pt.mpa, 2)} MPa)`;
+        return 'usado';
+    }
+    function textoEquacoes() {
+        const a = r.analise, p = r.params;
+        const e = (fcm, s, desc) => `${fn(fcm, 2)} * exp[ ${fn(s, 3)} * (1 - raiz(28/t)) ]${desc === null ? '' : ` - ${fn(desc, 2)}`}`;
+        const eq = [
+            ['Curva esperada pela norma (NBR 6118)', `f_cm,ref(t) = ${e(a.fcm_base, p.s_normative, null)}`],
+            ['Curva de projeção conservadora', `f_c,est(t) = ${e(a.fcm, a.s, a.offset)}`]
+        ];
+        if (a.showPlausibleTrendCurve) eq.push(['Tendência dos ensaios (dentro da faixa da norma)', `f_c,tend(t) = ${e(a.plausibleTrendFcm, a.plausibleTrendS, a.plausibleTrendOffset)}`]);
+        if (a.showFreeTrendCurve) eq.push(['Tendência dos ensaios (sem limite)', `f_c,livre(t) = ${e(a.freeTrendFcm, a.freeTrendS, a.freeTrendOffset)}`]);
+        return eq;
+    }
+
+    function montarPdf() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+        const p = r.params, a = r.analise;
+        const M = 14, L = 182, ALT = doc.internal.pageSize.getHeight(), BASE = ALT - 16;
+        let y = 0;
+        const txt = (t, x, yy, op) => doc.text(Array.isArray(t) ? t.map(latin1) : latin1(t), x, yy, op);
+        const quebrar = (t, w) => doc.splitTextToSize(latin1(t), w);
+        const fonte = (tam, estilo) => { doc.setFont('helvetica', estilo || 'normal'); doc.setFontSize(tam); };
+        const cor = hex => { const n = parseInt(hex.slice(1), 16); doc.setTextColor(n >> 16, (n >> 8) & 255, n & 255); };
+        const cabecalho = () => {
+            fonte(15, 'bold'); cor('#0f4c5c'); txt(`Estimativa fck v${VERSAO}`, M, 15);
+            fonte(9); cor('#4a5866'); txt(`Emitido em ${horaLocal()}`, M + L, 15, { align: 'right' });
+            fonte(9); txt('Projeção da resistência do concreto a partir dos rompimentos de CPs (curva beta1 da NBR 6118)', M, 20);
+            doc.setDrawColor(200); doc.line(M, 22.5, M + L, 22.5);
+            cor('#17212b');
+            y = 30;
+        };
+        const garantir = h => { if (y + h > BASE) { doc.addPage(); cabecalho(); } };   // C-15: quebra controlada
+        const titulo = t => { garantir(14); fonte(11.5, 'bold'); cor('#0f4c5c'); txt(t, M, y); cor('#17212b'); y += 6; };
+        const paragrafo = (t, tam, estilo) => { fonte(tam || 9.5, estilo); const ls = quebrar(t, L); garantir(ls.length * 4.6); txt(ls, M, y); y += ls.length * 4.6 + 1; };
+        const pares = (lista, colChave) => {
+            fonte(9.5);
+            lista.forEach(([k, v]) => {
+                const lv = quebrar(v, L - colChave);
+                garantir(lv.length * 4.6);
+                fonte(9.5, 'bold'); txt(k, M, y);
+                fonte(9.5); txt(lv, M + colChave, y);
+                y += lv.length * 4.6 + 0.6;
+            });
+            y += 2;
+        };
+        const lista = itens => { fonte(9.5); itens.forEach(t => { const ls = quebrar(t, L - 5); garantir(ls.length * 4.6); txt('-', M + 1, y); txt(ls, M + 5, y); y += ls.length * 4.6 + 0.8; }); y += 2; };
+
+        cabecalho();
+
+        // Identificação (opcional)
+        const id = estado.ident || {};
+        const idents = [['Obra', id.obra], ['Elemento / peça', id.elemento], ['Lote', id.lote], ['Laboratório', id.laboratorio], ['Responsável', id.responsavel]]
+            .filter(([, v]) => v && String(v).trim()).map(([k, v]) => [k, String(v).trim()]);
+        if (idents.length) { titulo('Identificação'); pares(idents, 40); }
+
+        // Resultado em destaque
+        titulo('Resultado');
+        const corSelo = { atende: ['#e4f4ea', '#1d7a45'], nao_atende: ['#fdecea', '#b42318'], indicativo: ['#fff4dc', '#8a5a00'], sem_dados: ['#eef1f4', '#4a5866'] }[r.selo.codigo] || ['#eef1f4', '#4a5866'];
+        const prev = r.previsaoIdade || r.previsoes.find(x => x.t === 28);
+        const linhasRes = [];
+        linhasRes.push(['bold', 13, `Resistência estimada conservadora aos 28 d: ${f1(r.estimada28)} MPa`]);
+        if (prev && prev.t !== 28) linhasRes.push(['normal', 10, `Aos ${fd(prev.t)} d: ${f1(prev.estimada)} MPa${prev.extrapolacao ? ' (extrapolação > 28 d, fora do escopo da NBR 6118)' : ''}`]);
+        linhasRes.push(['bold', 11, `${r.selo.texto}${r.selo.base === 'estimativa' ? ` o fck de ${fd(p.fck)} MPa (${sinal(r.estimada28 - p.fck)} MPa aos 28 d)` : ''}`, true]);
+        if (r.selo.base !== 'estimativa') linhasRes.push(['normal', 9.5, r.selo.motivo]);   // na estimativa o selo já traz o número
+        linhasRes.push(['normal', 9.5, `Confiança: ${r.confianca.rotulo}. ${r.confianca.motivo}`]);
+        const v = r.validacao28;
+        if (v.calculada) linhasRes.push(['normal', 9.5, `Comparação com o ensaio de 28 d (validação sem ele): previsão ${f1(v.previsto28)} MPa com os ensaios até ${fd(Math.max(...v.idadesUsadas))} d; ensaio ${f1(v.real28)} MPa; diferença ${sinal(v.erroPct)}% (${v.classificacao}).`]);
+        else if (r.real28 !== null) linhasRes.push(['normal', 9.5, `Comparação com o ensaio de 28 d: ${v.motivo}`]);
+        const blocos = linhasRes.map(([est, tam, t, selo]) => { fonte(tam, est); return { est, tam, selo: !!selo, ls: quebrar(t, L - 8) }; });
+        const altBox = blocos.reduce((s, b) => s + b.ls.length * (b.tam * 0.45) + 1.2, 0) + 5;
+        garantir(altBox);
+        const [fundo, borda] = corSelo;
+        doc.setFillColor(fundo); doc.setDrawColor(borda); doc.setLineWidth(0.4);
+        doc.roundedRect(M, y - 4, L, altBox, 2, 2, 'FD');
+        doc.setLineWidth(0.2);
+        let yy = y + 1.5;
+        blocos.forEach(b => { fonte(b.tam, b.est); cor(b.selo ? borda : '#17212b'); txt(b.ls, M + 4, yy); yy += b.ls.length * (b.tam * 0.45) + 1.2; });
+        cor('#17212b');
+        y += altBox + 3;
+
+        // Parâmetros
+        titulo('Parâmetros');
+        const nomeCim = p.cementType === 'custom' ? 's personalizado' : (NOMES_CIMENTO[p.cementType] || '');
+        pares([
+            ['fck de projeto', `${fd(p.fck)} MPa`],
+            ['Cimento', `${nomeCim} (s da norma = ${fn(p.s_normative, 3)})`],
+            ['Desvio-padrão sd', `${f1(p.sd)} MPa${p.sdPadrao ? ' (padrão, não informado)' : ''}`],
+            ['Ajuste da curva', p.analysisMode === 'normative' ? 'Manter a forma da norma, só ajustar o nível' : 'Ajustar aos ensaios (s até +-0,03 do valor da norma)'],
+            ['Ignorar ensaio que destoa', p.autoDrop ? 'ligado' : 'desligado'],
+            ['s usado na projeção', fn(a.s, 3)],
+            ['fcm alvo de dosagem', `${fn(a.fcm_base, 2)} MPa (fck + 1,65 sd)`],
+            ['fcm da curva média ajustada', `${fn(a.fcm, 2)} MPa (28 d)`],
+            ['Desconto (maior desvio abaixo)', `${fn(a.offset, 2)} MPa`]
+        ], 58);
+
+        // Tabela dos CPs
+        titulo(`Ensaios (${r.linhas.length} CP${r.linhas.length === 1 ? '' : 's'})`);
+        const cols = [M, M + 12, M + 34, M + 62];
+        const cabTabela = () => { fonte(9, 'bold'); doc.setFillColor('#eef1f4'); doc.rect(M, y - 3.8, L, 5.6, 'F'); txt('Nº', cols[0] + 1, y); txt('Idade (d)', cols[1], y); txt('fc (MPa)', cols[2], y); txt('Status', cols[3], y); y += 5.6; };
+        garantir(12); cabTabela();
+        r.linhas.forEach((l, i) => {
+            fonte(9);
+            const st = quebrar(statusLinha(l), L - (cols[3] - M));
+            const h = st.length * 4.2 + 1.2;
+            if (y + h > BASE) { doc.addPage(); cabecalho(); cabTabela(); }
+            fonte(9);
+            const bruto = estado.rows[i] || {};
+            txt(String(i + 1), cols[0] + 1, y);
+            txt(Number.isFinite(l.days) ? fd(l.days) : paraCampo(bruto.days) || '(vazio)', cols[1], y);
+            txt(Number.isFinite(l.mpa) ? fn(l.mpa, 1) : paraCampo(bruto.mpa) || '(vazio)', cols[2], y);
+            if (l.status !== 'ok') cor('#b42318'); else if (r.excluidos.includes(l.days)) cor('#8a5a00');
+            txt(st, cols[3], y);
+            cor('#17212b');
+            doc.setDrawColor(225); doc.line(M, y + h - 3.6, M + L, y + h - 3.6);
+            y += h;
+        });
+        y += 3;
+
+        // Avisos
+        const avisos = [...r.avisos.filter(x => x.tipo !== 'regra_referencia').map(x => x.texto), ...r.avisosDados.map(avisoAmigavel)];
+        if (r.excluidos.length) avisos.push(`Ignorado no ajuste: ${r.excluidos.map(fd).join(', ')} d.`);
+        if (r.mensagens.regraReferencia) avisos.push(r.mensagens.regraReferencia);
+        if (a.showPlausibleTrendCurve) avisos.push(`Os ensaios indicam potencial ${f1(a.tendencySuperiority)}% acima do previsto pela norma aos 28 d; por segurança, a projeção conservadora não usa esse ganho.`);
+        if (avisos.length) { titulo('Atenção aos dados'); lista(avisos); }
+
+        // Gráfico
+        const img = imagemGraficoPdf();
+        if (img) {
+            const hImg = L * 820 / 1500;
+            garantir(hImg + 10);
+            titulo('Gráfico');
+            doc.addImage(img, 'JPEG', M, y - 2, L, hImg);
+            y += hImg + 3;
+        }
+
+        // Equações (texto simples)
+        titulo('Equações');
+        fonte(9.5);
+        textoEquacoes().forEach(([k, e]) => { garantir(10); fonte(9, 'bold'); txt(k, M, y); y += 4.4; fonte(9.5); doc.setFont('courier', 'normal'); txt(quebrar(e, L), M + 2, y); y += 5.6; });
+        y += 1;
+
+        // Interpretação (mesmo conteúdo do relatório da tela)
+        const tmp = document.createElement('div');
+        tmp.innerHTML = relatorioHtml();
+        let emLista = null;
+        Array.from(tmp.children).forEach(el => {
+            if (el.tagName === 'H4' && /Desempenho|Possíveis|Recomendações/.test(el.textContent)) { titulo(el.textContent.trim()); emLista = true; }
+            else if (el.tagName === 'H4') emLista = false;
+            else if (el.tagName === 'UL' && emLista) lista(Array.from(el.querySelectorAll('li')).map(li => li.textContent.replace(/\s+/g, ' ').trim()));
+        });
+
+        // Nota de método e limite
+        titulo('Método e limite de uso');
+        paragrafo('Projeção conservadora = curva média ajustada aos ensaios (limitada ao fcm alvo de dosagem, fck + 1,65 sd) menos o maior desvio de um ensaio abaixo dela. Não é o fck estatístico (quantil de 5%) da NBR 12655. Extrapolação além de 28 d fica fora do escopo da NBR 6118. Apoio à decisão: não substitui o ensaio de 28 d.', 9);
+
+        // Rodapé com paginação
+        const n = doc.getNumberOfPages();
+        for (let i = 1; i <= n; i++) {
+            doc.setPage(i);
+            fonte(8); cor('#6b7885');
+            doc.setDrawColor(210); doc.line(M, ALT - 11, M + L, ALT - 11);
+            txt(`Estimativa fck v${VERSAO} - apoio à decisão, não substitui o ensaio de 28 d`, M, ALT - 7);
+            txt(`Página ${i} de ${n}`, M + L, ALT - 7, { align: 'right' });
+        }
+        return doc;
+    }
+
     async function exportarPdf() {
         executarTodos();
         if (!temPontos()) { msgAcoes('Sem resultado válido para exportar.', 'erro'); return; }
-        if (!window.jspdf || !window.html2canvas) { msgAcoes('PDF indisponível: as bibliotecas não carregaram (sem conexão?).', 'erro'); return; }
+        if (!window.jspdf) { msgAcoes('PDF indisponível: a biblioteca não carregou (sem conexão?).', 'erro'); return; }
         const btn = $('btnPdf');
         btn.disabled = true; btn.textContent = 'Gerando PDF…';
         msgAcoes('');
         try {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-            const p = r.params, a = r.analise;
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
-            doc.text('Estimativa fck - relatório', 105, 15, { align: 'center' });
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-            doc.text(`Data de emissão: ${new Date().toLocaleDateString('pt-BR')} · Estimativa fck v${VERSAO}`, 14, 23);
-            doc.line(14, 25, 196, 25);
-            doc.setFontSize(11); doc.setFont('helvetica', 'bold');
-            doc.text(`Resistência estimada conservadora aos 28 d: ${f1(r.estimada28)} MPa  ·  ${r.selo.texto}`, 14, 32);
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-            doc.text(doc.splitTextToSize(`Confiança: ${r.confianca.rotulo}. ${r.confianca.motivo}`, 182), 14, 38);
-            doc.text(`fck de projeto: ${fd(p.fck)} MPa · sd: ${f1(p.sd)} MPa${p.sdPadrao ? ' (padrão)' : ''} · cimento: ${NOMES_CIMENTO[p.cementType] || ''} · s = ${fn(p.s_normative, 3)}`, 14, 48);
-
-            const canvas = await window.html2canvas($('captureArea'), { scale: 2.5, backgroundColor: cssVar('--surface') || '#ffffff' });
-            const img = canvas.toDataURL('image/png');
-            const largura = 182, topo = 54, maxAlt = 120;
-            let w = largura, hgt = w * canvas.height / canvas.width;
-            if (hgt > maxAlt) { hgt = maxAlt; w = hgt * canvas.width / canvas.height; }
-            doc.addImage(img, 'PNG', 14 + (largura - w) / 2, topo, w, hgt);
-            let y = topo + hgt + 10;
-
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
-            doc.text('Equações', 14, y);
-            const exp = s => `e^{${latexNum(s, 3)}\\left(1-\\sqrt{28/t}\\right)}`;
-            y = await katexNoPdf(doc, `f_{cm,ref}(t) = ${latexNum(a.fcm_base, 2)}\\cdot ${exp(p.s_normative)}`, 14, y + 10, 'Curva esperada pela norma (NBR 6118):');
-            y = await katexNoPdf(doc, `f_{c,est}(t) = ${latexNum(a.fcm, 2)}\\cdot ${exp(a.s)} - ${latexNum(a.offset, 2)}`, 14, y, 'Curva de projeção conservadora:');
-
-            doc.addPage();
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
-            doc.text('Relatório interpretativo', 105, 15, { align: 'center' });
-            htmlNoPdf(doc, relatorioHtml(), 14, 25);
-            doc.save(`estimativa-fck-${dataLocal()}.pdf`);
+            const doc = montarPdf();
+            doc.save(`estimativa-fck-${dataLocal()}.pdf`);   // C-25: data local
             msgAcoes('PDF gerado.', 'ok');
         } catch (err) {
             console.error('Erro ao gerar PDF:', err);
@@ -711,61 +929,8 @@
             btn.disabled = !temPontos();
         }
     }
-    async function katexNoPdf(doc, tex, x, y, titulo) {
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
-        doc.text(titulo, x, y - 4);
-        if (!window.katex) { doc.setFont('helvetica', 'normal'); doc.text(tex, x, y + 2); return y + 12; }
-        const div = document.createElement('div');
-        Object.assign(div.style, { position: 'absolute', left: '-9999px', background: '#ffffff', color: '#000000', display: 'inline-block', lineHeight: '1', padding: '0' });
-        document.body.appendChild(div);
-        window.katex.render(tex, div, { throwOnError: false, displayMode: true });
-        await new Promise(res => setTimeout(res, 100));
-        const cv = await window.html2canvas(div, { scale: 3, backgroundColor: null });
-        const w = cv.width / 11.8, hgt = cv.height / 11.8;
-        doc.addImage(cv.toDataURL('image/png'), 'PNG', x, y, w, hgt);
-        document.body.removeChild(div);
-        return y + hgt + 8;
-    }
-    function htmlNoPdf(doc, html, x0, y0) {
-        const tmp = document.createElement('div');
-        tmp.innerHTML = html;
-        let y = y0;
-        const alturaPag = doc.internal.pageSize.height, margem = 20;
-        const quebra = n => { if (y + n > alturaPag - margem) { doc.addPage(); y = 15; } };
-        for (const el of Array.from(tmp.children)) {
-            const texto = (el.textContent || '').replace(/\s+/g, ' ').trim();
-            if (el.tagName === 'H4') {
-                quebra(12); y += 6;
-                doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
-                doc.text(doc.splitTextToSize(texto, 182), x0, y); y += 7;
-            } else if (el.tagName === 'P') {
-                doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
-                const l = doc.splitTextToSize(texto, 182); quebra(l.length * 4.5);
-                doc.text(l, x0, y); y += l.length * 4.5 + 2;
-            } else if (el.tagName === 'UL') {
-                doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-                for (const li of Array.from(el.querySelectorAll('li'))) {
-                    const l = doc.splitTextToSize(li.textContent.replace(/\s+/g, ' ').trim(), 176);
-                    quebra(l.length * 4.5);
-                    doc.text('•', x0, y);
-                    doc.text(l, x0 + 4, y);
-                    y += l.length * 4.5 + 1;
-                }
-                y += 3;
-            } else if (el.tagName === 'DIV') {
-                doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-                const ok = el.classList.contains('ok'), ruim = el.classList.contains('ruim');
-                const l = doc.splitTextToSize(texto, 176);
-                const alt = l.length * 4.5 + 6;
-                quebra(alt);
-                doc.setDrawColor(ok ? '#9fd8b4' : ruim ? '#f1b0aa' : '#f0d58a');
-                doc.setFillColor(ok ? '#e4f4ea' : ruim ? '#fdecea' : '#fff4dc');
-                doc.rect(x0, y - 4, 182, alt, 'FD');
-                doc.text(l, x0 + 3, y + 1);
-                y += alt + 2;
-            }
-        }
-    }
+    // Para conferência automatizada (devolve o PDF como data URI, sem baixar).
+    window.EstimativaApp = { pdfDataUri: () => (temPontos() && window.jspdf ? montarPdf().output('datauristring') : null) };
 
     // ------------------------------------------------------------------ ajudas tocáveis (U-16)
     function ligarAjudas() {
@@ -850,6 +1015,10 @@
         ligarAjudas();
         ligarTopo();
         iniciarGrafico();
+        // PWA: service worker só em http/https (não em file://).
+        if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+            navigator.serviceWorker.register('sw.js').catch(() => { /* sem offline; o app segue funcionando */ });
+        }
         const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
         if (mq && mq.addEventListener) mq.addEventListener('change', () => renderGrafico());
         calcular();

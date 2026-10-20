@@ -6,13 +6,13 @@
     <title>Estimativa fck</title>
     <meta name="description" content="Previsão da resistência do concreto a partir dos rompimentos de corpos de prova (NBR 6118).">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f4c5c'/%3E%3Cpath d='M6 25 C10 12 16 9 26 8' stroke='%23fff' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='11' cy='17' r='2.4' fill='%23f2b450'/%3E%3Ccircle cx='19' cy='11' r='2.4' fill='%23f2b450'/%3E%3C/svg%3E">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#0f4c5c">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="stylesheet" href="css/app.css">
     <!-- Bibliotecas externas (vendorizar no M4) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Núcleo de cálculo (puro) e interface -->
     <script src="js/calc.js"></script>
@@ -103,6 +103,20 @@
                         <input type="checkbox" id="autoDrop">
                         <label for="autoDrop">Ignorar no ajuste o ensaio que destoa do vizinho (continua no gráfico)</label>
                     </div>
+                </div>
+            </details>
+        </section>
+
+        <!-- Identificação opcional (vai para o PDF) -->
+        <section class="cartao" aria-label="Identificação do lote">
+            <details class="recolhivel" id="identificacao">
+                <summary>Identificação (opcional, sai no PDF)</summary>
+                <div class="conteudo">
+                    <div class="campo"><label for="id_obra">Obra</label><div class="entrada"><input id="id_obra" type="text" autocomplete="off" maxlength="120"></div></div>
+                    <div class="campo"><label for="id_elemento">Elemento / peça</label><div class="entrada"><input id="id_elemento" type="text" autocomplete="off" maxlength="120"></div></div>
+                    <div class="campo"><label for="id_lote">Lote</label><div class="entrada"><input id="id_lote" type="text" autocomplete="off" maxlength="120"></div></div>
+                    <div class="campo"><label for="id_laboratorio">Laboratório</label><div class="entrada"><input id="id_laboratorio" type="text" autocomplete="off" maxlength="120"></div></div>
+                    <div class="campo"><label for="id_responsavel">Responsável</label><div class="entrada"><input id="id_responsavel" type="text" autocomplete="off" maxlength="120"></div></div>
                 </div>
             </details>
         </section>

@@ -1,7 +1,7 @@
 # Mapa do app
 
 ## v2.0 (branch `modernizacao-2026-10`, M3)
-Arquivos: `index.html` (estrutura), `css/app.css` (estilo próprio, tokens claro/escuro, fonte do sistema; sem Tailwind e sem Google Fonts), `js/calc.js` (núcleo puro, `analyze`), `js/app.js` (interface: lê a tela, chama `analyze`, desenha). Bibliotecas ainda por CDN: Chart.js 3.9.1 + annotation 1.4.0, KaTeX 0.16.0, html2canvas 1.4.1, jsPDF 2.5.1 (vendorizar no M4).
+Arquivos: `index.html` (estrutura), `css/app.css` (estilo próprio, tokens claro/escuro, fonte do sistema; sem Tailwind e sem Google Fonts), `js/calc.js` (núcleo puro, `analyze`), `js/app.js` (interface: lê a tela, chama `analyze`, desenha), `manifest.webmanifest` + `icons/` + `sw.js` (PWA, M4). Bibliotecas ainda por CDN: Chart.js 3.9.1 + annotation 1.4.0 e jsPDF 2.5.1 (vendorizar no M4c, plano em `vendor/README.md`). KaTeX e html2canvas saíram no M4.
 
 | Bloco | Conteúdo |
 |---|---|
@@ -13,7 +13,11 @@ Arquivos: `index.html` (estrutura), `css/app.css` (estilo próprio, tokens claro
 | Gráfico | norma (cinza tracejada), projeção conservadora, tendências (só se existirem), ensaios; trecho > 28 d esmaecido e tracejado, faixa "extrapolação: fora do escopo da NBR 6118"; linha 28 d só com ensaio real |
 | Atenção aos dados | uma caixa com todos os avisos (linhas inválidas, agregação, sd padrão, razões, monotonia, ignorados) |
 | Detalhes técnicos | recolhido: s, fcm alvo, fcm ajustado, desconto, idades, tendências, equações KaTeX (f_cm,ref; f_c,est; f_c,tend; f_c,livre) |
-| Relatório / PDF | relatório em `<dialog>` (Esc, clique fora, foco); PDF provisório com os rótulos novos (refazer no M4) |
+| Identificação (opcional) | obra, elemento/peça, lote, laboratório, responsável; salvos e impressos no PDF |
+| Relatório / PDF | relatório em `<dialog>` (Esc, clique fora, foco). PDF (M4) em texto nativo do jsPDF: cabeçalho com data/hora local, identificação, resultado em destaque (selo, confiança, validação 28 d), parâmetros, tabela dos CPs com status (usado / agregado / excluído / inválido), avisos, gráfico (canvas fora da tela, paleta clara, JPEG), equações em texto Latin-1, interpretação, nota de método e limite, rodapé com página; nome `estimativa-fck-AAAA-MM-DD.pdf` (data local) |
+| Offline (PWA) | `sw.js`: arquivos locais com cache primeiro e atualização em segundo plano; CDN com rede primeiro e cópia de reserva; cache `estimativa-fck-v2.0`; registrado só em http/https |
+
+Selo (`analyze().selo.codigo`): `atende`, `nao_atende`, `indicativo` e `sem_dados` (sem nenhum ensaio: a tela mostra o estado vazio, sem selo colorido).
 
 Estado salvo em `localStorage` (`estimativaFck.v2`, com try/catch). Debounce por campo; change/blur gravam na hora. Campos numéricos `type=text inputmode=decimal` aceitam vírgula.
 

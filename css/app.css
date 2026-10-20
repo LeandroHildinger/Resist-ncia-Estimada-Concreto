@@ -285,6 +285,8 @@ details.recolhivel > .conteudo { padding: 4px 12px 12px; }
 .tabela-tec th, .tabela-tec td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--border); vertical-align: top; }
 .tabela-tec th { color: var(--ink-2); font-weight: 600; width: 55%; }
 .equacao { overflow-x: auto; padding: 8px; background: var(--surface-2); border-radius: var(--radius-sm); margin: 4px 0 10px; }
+.eq { font-family: "Cambria Math", "Times New Roman", serif; font-size: 1.05rem; white-space: nowrap; }
+.eq sub, .eq sup { font-size: .72em; }
 .equacao-titulo { font-size: .85rem; font-weight: 600; color: var(--ink-2); margin-top: 8px; }
 
 /* ---------- Modal (U-18) ---------- */
