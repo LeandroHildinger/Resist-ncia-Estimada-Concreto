@@ -1,0 +1,1739 @@
+{
+  "origem": "index.html commit 6e0bdc9, linhas 269-513 (cópia congelada em tests/ref/nucleo_original_6e0bdc9.js)",
+  "gerado_em": "2026-10-20T14:28:16.908Z",
+  "node": "v24.13.0",
+  "tolerancia": 1e-9,
+  "cenarios": [
+    {
+      "id": "a1_c45_cpv_1ponto_7d",
+      "desc": "Caso real C45 CP V-ARI sd 4: só 7d=28,5 (esperado 32,04 aos 14 d)",
+      "entrada": {
+        "id": "a1_c45_cpv_1ponto_7d",
+        "desc": "Caso real C45 CP V-ARI sd 4: só 7d=28,5 (esperado 32,04 aos 14 d)",
+        "fck": 45,
+        "sd": 4,
+        "cement": 0.2,
+        "mode": "adjusted",
+        "autoDrop": false,
+        "data": [
+          {
+            "days": 7,
+            "mpa": 28.5
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.2,
+        "analise": {
+          "fcm": 34.809978607564844,
+          "s": 0.2,
+          "offset": 0,
+          "fcm_base": 51.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": false,
+          "plausibleTrendFcm": 34.809978607564844,
+          "plausibleTrendS": 0.2,
+          "plausibleTrendOffset": 0,
+          "tendencySuperiority": 0,
+          "showFreeTrendCurve": false,
+          "freeTrendFcm": 34.809978607564844,
+          "freeTrendS": 0.2,
+          "freeTrendOffset": 0
+        },
+        "avisos": [],
+        "excluidos": [],
+        "previsao": {
+          "3": 23.0783279832053,
+          "7": 28.5,
+          "14": 32.042443226448476,
+          "28": 34.809978607564844,
+          "63": 37.20974740385114
+        },
+        "media": {
+          "3": 23.0783279832053,
+          "7": 28.5,
+          "14": 32.042443226448476,
+          "28": 34.809978607564844,
+          "63": 37.20974740385114
+        },
+        "previsaoPlausivel": null,
+        "previsaoLivre": null,
+        "delta28": null,
+        "diagnosticoSatisfatorio": false,
+        "curva": {
+          "n": 179,
+          "somaY": 6254.674196658419
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 9271.513556099593
+        },
+        "beta1": {
+          "3": 0.6629802403322924,
+          "7": 0.8187307530779818,
+          "14": 0.9204959183596012,
+          "28": 1,
+          "63": 1.0689391057472464
+        }
+      }
+    },
+    {
+      "id": "a2_c45_cpv_7d_14d",
+      "desc": "Caso real C45 CP V-ARI sd 4: 7d=28,5 + 14d=31,7 (esperado 34,18 aos 28 d)",
+      "entrada": {
+        "id": "a2_c45_cpv_7d_14d",
+        "desc": "Caso real C45 CP V-ARI sd 4: 7d=28,5 + 14d=31,7 (esperado 34,18 aos 28 d)",
+        "fck": 45,
+        "sd": 4,
+        "cement": 0.2,
+        "mode": "adjusted",
+        "autoDrop": false,
+        "data": [
+          {
+            "days": 7,
+            "mpa": 28.5
+          },
+          {
+            "days": 14,
+            "mpa": 31.7
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.2,
+        "analise": {
+          "fcm": 34.17701708494112,
+          "s": 0.18164531753841165,
+          "offset": 0.00011395155005189395,
+          "fcm_base": 51.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": false,
+          "plausibleTrendFcm": 34.17701708494112,
+          "plausibleTrendS": 0.18164531753841165,
+          "plausibleTrendOffset": 0,
+          "tendencySuperiority": 0,
+          "showFreeTrendCurve": false,
+          "freeTrendFcm": 34.17716924165873,
+          "freeTrendS": 0.18165190277863136,
+          "freeTrendOffset": 0
+        },
+        "avisos": [],
+        "excluidos": [],
+        "previsao": {
+          "3": 23.529577958093274,
+          "7": 28.5,
+          "14": 31.69978359915476,
+          "28": 34.176903133391065,
+          "63": 36.31020038033361
+        },
+        "media": {
+          "3": 23.529691909643326,
+          "7": 28.500113951550052,
+          "14": 31.69989755070481,
+          "28": 34.17701708494112,
+          "63": 36.31031433188367
+        },
+        "previsaoPlausivel": null,
+        "previsaoLivre": null,
+        "delta28": null,
+        "diagnosticoSatisfatorio": false,
+        "curva": {
+          "n": 179,
+          "somaY": 6135.240899163277
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 9271.513556099593
+        },
+        "beta1": {
+          "3": 0.6629802403322924,
+          "7": 0.8187307530779818,
+          "14": 0.9204959183596012,
+          "28": 1,
+          "63": 1.0689391057472464
+        }
+      }
+    },
+    {
+      "id": "a3_c45_cpv_3_7_14",
+      "desc": "Roteiro CSV mediana: 3d=20,75 7d=28,8 14d=31,7",
+      "entrada": {
+        "id": "a3_c45_cpv_3_7_14",
+        "desc": "Roteiro CSV mediana: 3d=20,75 7d=28,8 14d=31,7",
+        "fck": 45,
+        "sd": 4,
+        "cement": 0.2,
+        "mode": "adjusted",
+        "autoDrop": false,
+        "data": [
+          {
+            "days": 3,
+            "mpa": 20.75
+          },
+          {
+            "days": 7,
+            "mpa": 28.8
+          },
+          {
+            "days": 14,
+            "mpa": 31.7
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.2,
+        "analise": {
+          "fcm": 35.00634540794076,
+          "s": 0.22996441276131074,
+          "offset": 1.0724852002225198,
+          "fcm_base": 51.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": false,
+          "plausibleTrendFcm": 35.00634540794076,
+          "plausibleTrendS": 0.22996441276131074,
+          "plausibleTrendOffset": 0,
+          "tendencySuperiority": 0,
+          "showFreeTrendCurve": false,
+          "freeTrendFcm": 35.86090347758966,
+          "freeTrendS": 0.2552174757781327,
+          "freeTrendOffset": 0
+        },
+        "avisos": [],
+        "excluidos": [],
+        "previsao": {
+          "3": 20.75,
+          "7": 26.742222358248874,
+          "14": 30.753241034017265,
+          "28": 33.93386020771824,
+          "63": 36.72279176014841
+        },
+        "media": {
+          "3": 21.82248520022252,
+          "7": 27.814707558471394,
+          "14": 31.825726234239784,
+          "28": 35.00634540794076,
+          "63": 37.795276960370934
+        },
+        "previsaoPlausivel": null,
+        "previsaoLivre": null,
+        "delta28": null,
+        "diagnosticoSatisfatorio": false,
+        "curva": {
+          "n": 179,
+          "somaY": 6300.865624841384
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 9271.513556099593
+        },
+        "beta1": {
+          "3": 0.6629802403322924,
+          "7": 0.8187307530779818,
+          "14": 0.9204959183596012,
+          "28": 1,
+          "63": 1.0689391057472464
+        }
+      }
+    },
+    {
+      "id": "b1_1ponto_acima",
+      "desc": "1 ponto acima da referência: 7d=50",
+      "entrada": {
+        "id": "b1_1ponto_acima",
+        "desc": "1 ponto acima da referência: 7d=50",
+        "fck": 45,
+        "sd": 4,
+        "cement": 0.2,
+        "mode": "adjusted",
+        "autoDrop": false,
+        "data": [
+          {
+            "days": 7,
+            "mpa": 50
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.2,
+        "analise": {
+          "fcm": 51.6,
+          "s": 0.2,
+          "offset": 0,
+          "fcm_base": 51.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": true,
+          "plausibleTrendFcm": 61.070137908008505,
+          "plausibleTrendS": 0.2,
+          "plausibleTrendOffset": 7.105427357601002e-15,
+          "tendencySuperiority": 18.352980441876944,
+          "showFreeTrendCurve": true,
+          "freeTrendFcm": 61.070137908008505,
+          "freeTrendS": 0.2,
+          "freeTrendOffset": 7.105427357601002e-15
+        },
+        "avisos": [],
+        "excluidos": [],
+        "previsao": {
+          "3": 34.20978040114629,
+          "7": 42.246506858823864,
+          "14": 47.497589387355426,
+          "28": 51.6,
+          "63": 55.15725785655791
+        },
+        "media": {
+          "3": 34.20978040114629,
+          "7": 42.246506858823864,
+          "14": 47.497589387355426,
+          "28": 51.6,
+          "63": 55.15725785655791
+        },
+        "previsaoPlausivel": {
+          "3": 40.48829470737771,
+          "7": 50,
+          "14": 56.21481267797978,
+          "28": 61.0701379080085,
+          "63": 65.2802586032476
+        },
+        "previsaoLivre": {
+          "3": 40.48829470737771,
+          "7": 50,
+          "14": 56.21481267797978,
+          "28": 61.0701379080085,
+          "63": 65.2802586032476
+        },
+        "delta28": null,
+        "diagnosticoSatisfatorio": true,
+        "curva": {
+          "n": 179,
+          "somaY": 9271.513556099593
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 9271.513556099593
+        },
+        "beta1": {
+          "3": 0.6629802403322924,
+          "7": 0.8187307530779818,
+          "14": 0.9204959183596012,
+          "28": 1,
+          "63": 1.0689391057472464
+        }
+      }
+    },
+    {
+      "id": "b2_1ponto_precoce",
+      "desc": "1 ponto em idade precoce: 1d=20",
+      "entrada": {
+        "id": "b2_1ponto_precoce",
+        "desc": "1 ponto em idade precoce: 1d=20",
+        "fck": 45,
+        "sd": 4,
+        "cement": 0.2,
+        "mode": "adjusted",
+        "autoDrop": false,
+        "data": [
+          {
+            "days": 1,
+            "mpa": 20
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.2,
+        "analise": {
+          "fcm": 47.18295941114616,
+          "s": 0.2,
+          "offset": 0,
+          "fcm_base": 51.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": false,
+          "plausibleTrendFcm": 47.18295941114616,
+          "plausibleTrendS": 0.2,
+          "plausibleTrendOffset": 0,
+          "tendencySuperiority": 0,
+          "showFreeTrendCurve": false,
+          "freeTrendFcm": 47.18295941114616,
+          "freeTrendS": 0.2,
+          "freeTrendOffset": 0
+        },
+        "avisos": [],
+        "excluidos": [],
+        "previsao": {
+          "3": 31.281369769990476,
+          "7": 38.63013989113554,
+          "14": 43.43172155408677,
+          "28": 47.18295941114616,
+          "63": 50.43571043945919
+        },
+        "media": {
+          "3": 31.281369769990476,
+          "7": 38.63013989113554,
+          "14": 43.43172155408677,
+          "28": 47.18295941114616,
+          "63": 50.43571043945919
+        },
+        "previsaoPlausivel": null,
+        "previsaoLivre": null,
+        "delta28": null,
+        "diagnosticoSatisfatorio": true,
+        "curva": {
+          "n": 179,
+          "somaY": 8477.857515452297
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 9271.513556099593
+        },
+        "beta1": {
+          "3": 0.6629802403322924,
+          "7": 0.8187307530779818,
+          "14": 0.9204959183596012,
+          "28": 1,
+          "63": 1.0689391057472464
+        }
+      }
+    },
+    {
+      "id": "c1_acima_com_28d",
+      "desc": "Acima da referência com ensaio de 28 d: 3d=40 7d=47 14d=52 28d=57",
+      "entrada": {
+        "id": "c1_acima_com_28d",
+        "desc": "Acima da referência com ensaio de 28 d: 3d=40 7d=47 14d=52 28d=57",
+        "fck": 45,
+        "sd": 4,
+        "cement": 0.2,
+        "mode": "adjusted",
+        "autoDrop": false,
+        "data": [
+          {
+            "days": 3,
+            "mpa": 40
+          },
+          {
+            "days": 7,
+            "mpa": 47
+          },
+          {
+            "days": 14,
+            "mpa": 52
+          },
+          {
+            "days": 28,
+            "mpa": 57
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.2,
+        "analise": {
+          "fcm": 51.6,
+          "s": 0.1723596101418943,
+          "offset": 0,
+          "fcm_base": 51.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": true,
+          "plausibleTrendFcm": 56.40718377461884,
+          "plausibleTrendS": 0.1723596101418943,
+          "plausibleTrendOffset": 0.5204613756574972,
+          "tendencySuperiority": 9.31624762523029,
+          "showFreeTrendCurve": true,
+          "freeTrendFcm": 56.406485791544846,
+          "freeTrendS": 0.17234135538629167,
+          "freeTrendOffset": 0.5202086100156791
+        },
+        "avisos": [],
+        "excluidos": [],
+        "previsao": {
+          "3": 36.209226998365565,
+          "7": 43.430504477075836,
+          "14": 48.044515354857204,
+          "28": 51.6,
+          "63": 54.65140240506574
+        },
+        "media": {
+          "3": 36.209226998365565,
+          "7": 43.430504477075836,
+          "14": 48.044515354857204,
+          "28": 51.6,
+          "63": 54.65140240506574
+        },
+        "previsaoPlausivel": {
+          "3": 39.06210687305755,
+          "7": 46.95613644338946,
+          "14": 52,
+          "28": 55.88672239896134,
+          "63": 59.22240100812524
+        },
+        "previsaoLivre": {
+          "3": 39.06335477110833,
+          "7": 46.95666840399625,
+          "14": 52,
+          "28": 55.88627718152917,
+          "63": 59.22155099012528
+        },
+        "delta28": -9.473684210526313,
+        "diagnosticoSatisfatorio": true,
+        "curva": {
+          "n": 179,
+          "somaY": 9258.919318364413
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 9271.513556099593
+        },
+        "beta1": {
+          "3": 0.6629802403322924,
+          "7": 0.8187307530779818,
+          "14": 0.9204959183596012,
+          "28": 1,
+          "63": 1.0689391057472464
+        }
+      }
+    },
+    {
+      "id": "c2_acima_moderado",
+      "desc": "Acima da referência: 3d=36 7d=44 14d=49",
+      "entrada": {
+        "id": "c2_acima_moderado",
+        "desc": "Acima da referência: 3d=36 7d=44 14d=49",
+        "fck": 45,
+        "sd": 4,
+        "cement": 0.2,
+        "mode": "adjusted",
+        "autoDrop": false,
+        "data": [
+          {
+            "days": 3,
+            "mpa": 36
+          },
+          {
+            "days": 7,
+            "mpa": 44
+          },
+          {
+            "days": 14,
+            "mpa": 49
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.2,
+        "analise": {
+          "fcm": 51.6,
+          "s": 0.1878888394593171,
+          "offset": 0,
+          "fcm_base": 51.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": true,
+          "plausibleTrendFcm": 53.009905832759806,
+          "plausibleTrendS": 0.1878888394593171,
+          "plausibleTrendOffset": 0.04080433333043487,
+          "tendencySuperiority": 2.7323756448833336,
+          "showFreeTrendCurve": true,
+          "freeTrendFcm": 53.00881897601436,
+          "freeTrendS": 0.1878681929313838,
+          "freeTrendOffset": 0.04021824835057686
+        },
+        "avisos": [],
+        "excluidos": [],
+        "previsao": {
+          "3": 35.071913532947775,
+          "7": 42.76127199513801,
+          "14": 47.73646479552909,
+          "28": 51.6,
+          "63": 54.93503392170159
+        },
+        "media": {
+          "3": 35.071913532947775,
+          "7": 42.76127199513801,
+          "14": 47.73646479552909,
+          "28": 51.6,
+          "63": 54.93503392170159
+        },
+        "previsaoPlausivel": {
+          "3": 35.98940562318615,
+          "7": 43.88886624324505,
+          "14": 49,
+          "28": 52.96910149942937,
+          "63": 56.39526107575613
+        },
+        "previsaoLivre": {
+          "3": 35.99078173494107,
+          "7": 43.88945862856349,
+          "14": 49,
+          "28": 52.968600727663784,
+          "63": 56.39430166415302
+        },
+        "delta28": null,
+        "diagnosticoSatisfatorio": true,
+        "curva": {
+          "n": 179,
+          "somaY": 9265.7244050578
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 9271.513556099593
+        },
+        "beta1": {
+          "3": 0.6629802403322924,
+          "7": 0.8187307530779818,
+          "14": 0.9204959183596012,
+          "28": 1,
+          "63": 1.0689391057472464
+        }
+      }
+    },
+    {
+      "id": "c3_regra_referencia",
+      "desc": "Pontos sobre/acima da referência que acionam ruleApplied: 3d=34,21 7d=42,25 14d=47,74",
+      "entrada": {
+        "id": "c3_regra_referencia",
+        "desc": "Pontos sobre/acima da referência que acionam ruleApplied: 3d=34,21 7d=42,25 14d=47,74",
+        "fck": 45,
+        "sd": 4,
+        "cement": 0.2,
+        "mode": "adjusted",
+        "autoDrop": false,
+        "data": [
+          {
+            "days": 3,
+            "mpa": 34.21
+          },
+          {
+            "days": 7,
+            "mpa": 42.25
+          },
+          {
+            "days": 14,
+            "mpa": 47.74
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.2,
+        "analise": {
+          "fcm": 51.6,
+          "s": 0.2,
+          "offset": 0,
+          "fcm_base": 51.6,
+          "ruleApplied": true,
+          "showPlausibleTrendCurve": true,
+          "plausibleTrendFcm": 51.87556412853796,
+          "plausibleTrendS": 0.20314375508352842,
+          "plausibleTrendOffset": 0.08880740351185068,
+          "tendencySuperiority": 0.5340390087944957,
+          "showFreeTrendCurve": true,
+          "freeTrendFcm": 51.87566936603938,
+          "freeTrendS": 0.20314582335689427,
+          "freeTrendOffset": 0.08880572593154312
+        },
+        "avisos": [],
+        "excluidos": [],
+        "previsao": {
+          "3": 34.20978040114629,
+          "7": 42.246506858823864,
+          "14": 47.497589387355426,
+          "28": 51.6,
+          "63": 55.15725785655791
+        },
+        "media": {
+          "3": 34.20978040114629,
+          "7": 42.246506858823864,
+          "14": 47.497589387355426,
+          "28": 51.6,
+          "63": 55.15725785655791
+        },
+        "previsaoPlausivel": {
+          "3": 34.082187611641395,
+          "7": 42.25,
+          "14": 47.60029710504325,
+          "28": 51.78675672502611,
+          "63": 55.42115116297933
+        },
+        "previsaoLivre": {
+          "3": 34.08211336970886,
+          "7": 42.25,
+          "14": 47.60035467160326,
+          "28": 51.78686364010784,
+          "63": 55.42130372099879
+        },
+        "delta28": null,
+        "diagnosticoSatisfatorio": true,
+        "curva": {
+          "n": 179,
+          "somaY": 9271.513556099593
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 9271.513556099593
+        },
+        "beta1": {
+          "3": 0.6629802403322924,
+          "7": 0.8187307530779818,
+          "14": 0.9204959183596012,
+          "28": 1,
+          "63": 1.0689391057472464
+        }
+      }
+    },
+    {
+      "id": "d1_abaixo",
+      "desc": "Abaixo da referência: 3d=22 7d=28 14d=33",
+      "entrada": {
+        "id": "d1_abaixo",
+        "desc": "Abaixo da referência: 3d=22 7d=28 14d=33",
+        "fck": 45,
+        "sd": 4,
+        "cement": 0.2,
+        "mode": "adjusted",
+        "autoDrop": false,
+        "data": [
+          {
+            "days": 3,
+            "mpa": 22
+          },
+          {
+            "days": 7,
+            "mpa": 28
+          },
+          {
+            "days": 14,
+            "mpa": 33
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.2,
+        "analise": {
+          "fcm": 35.72418114629589,
+          "s": 0.22996441276131074,
+          "offset": 0.38507247102344877,
+          "fcm_base": 51.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": false,
+          "plausibleTrendFcm": 35.72418114629589,
+          "plausibleTrendS": 0.22996441276131074,
+          "plausibleTrendOffset": 0,
+          "tendencySuperiority": 0,
+          "showFreeTrendCurve": false,
+          "freeTrendFcm": 36.34836107458538,
+          "freeTrendS": 0.24807707480454078,
+          "freeTrendOffset": 0
+        },
+        "avisos": [],
+        "excluidos": [],
+        "previsao": {
+          "3": 21.884901879920076,
+          "7": 28,
+          "14": 32.09326812280788,
+          "28": 35.33910867527244,
+          "63": 38.18522970911893
+        },
+        "media": {
+          "3": 22.269974350943524,
+          "7": 28.38507247102345,
+          "14": 32.47834059383133,
+          "28": 35.72418114629589,
+          "63": 38.57030218014238
+        },
+        "previsaoPlausivel": null,
+        "previsaoLivre": null,
+        "delta28": null,
+        "diagnosticoSatisfatorio": false,
+        "curva": {
+          "n": 179,
+          "somaY": 6430.070386874569
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 9271.513556099593
+        },
+        "beta1": {
+          "3": 0.6629802403322924,
+          "7": 0.8187307530779818,
+          "14": 0.9204959183596012,
+          "28": 1,
+          "63": 1.0689391057472464
+        }
+      }
+    },
+    {
+      "id": "e1_nao_monotonico_cpii",
+      "desc": "Não monotônico C35 CP II: 3d=16 7d=14,5",
+      "entrada": {
+        "id": "e1_nao_monotonico_cpii",
+        "desc": "Não monotônico C35 CP II: 3d=16 7d=14,5",
+        "fck": 35,
+        "sd": 4,
+        "cement": 0.25,
+        "mode": "adjusted",
+        "autoDrop": false,
+        "data": [
+          {
+            "days": 3,
+            "mpa": 16
+          },
+          {
+            "days": 7,
+            "mpa": 14.5
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.25,
+        "analise": {
+          "fcm": 20.80105695028113,
+          "s": 0.22003558723868927,
+          "offset": 2.1926451643705107,
+          "fcm_base": 41.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": false,
+          "plausibleTrendFcm": 20.80105695028113,
+          "plausibleTrendS": 0.22003558723868927,
+          "plausibleTrendOffset": 0,
+          "tendencySuperiority": 0,
+          "showFreeTrendCurve": false,
+          "freeTrendFcm": 16.423028963202825,
+          "freeTrendS": 0.05004759432472087,
+          "freeTrendOffset": 0
+        },
+        "avisos": [
+          "<b>Inconsistência de Monotonia:</b> A resistência aos 7 dias (14.5 MPa) é menor que a dos 3 dias (16.0 MPa).",
+          "<b>Razão 7d/3d Incomum:</b> O valor de 0.91 está fora da banda dinâmica esperada (1.04 a 1.56)."
+        ],
+        "excluidos": [],
+        "previsao": {
+          "3": 11.04175568957545,
+          "7": 14.5,
+          "14": 16.79639683462188,
+          "28": 18.60841178591062,
+          "63": 20.191412545163555
+        },
+        "media": {
+          "3": 13.23440085394596,
+          "7": 16.69264516437051,
+          "14": 18.98904199899239,
+          "28": 20.80105695028113,
+          "63": 22.384057709534066
+        },
+        "previsaoPlausivel": null,
+        "previsaoLivre": null,
+        "delta28": null,
+        "diagnosticoSatisfatorio": false,
+        "curva": {
+          "n": 179,
+          "somaY": 3741.76852753812
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 7497.425160413745
+        },
+        "beta1": {
+          "3": 0.5982403900091511,
+          "7": 0.7788007830714049,
+          "14": 0.9016278830091764,
+          "28": 1,
+          "63": 1.086904049521229
+        }
+      }
+    },
+    {
+      "id": "e2_outlier_sem_autodrop",
+      "desc": "Outlier C40 CP V: 3d=22 7d=35 14d=30, auto-exclusão desligada",
+      "entrada": {
+        "id": "e2_outlier_sem_autodrop",
+        "desc": "Outlier C40 CP V: 3d=22 7d=35 14d=30, auto-exclusão desligada",
+        "fck": 40,
+        "sd": 4,
+        "cement": 0.2,
+        "mode": "adjusted",
+        "autoDrop": false,
+        "data": [
+          {
+            "days": 3,
+            "mpa": 22
+          },
+          {
+            "days": 7,
+            "mpa": 35
+          },
+          {
+            "days": 14,
+            "mpa": 30
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.2,
+        "analise": {
+          "fcm": 35.754866278766734,
+          "s": 0.18735701408781863,
+          "offset": 3.0850183905482282,
+          "fcm_base": 46.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": false,
+          "plausibleTrendFcm": 35.754866278766734,
+          "plausibleTrendS": 0.18735701408781863,
+          "plausibleTrendOffset": 0,
+          "tendencySuperiority": 0,
+          "showFreeTrendCurve": false,
+          "freeTrendFcm": 35.75402817834419,
+          "freeTrendS": 0.18733341986347696,
+          "freeTrendOffset": 0
+        },
+        "avisos": [
+          "<b>Inconsistência de Monotonia:</b> A resistência aos 14 dias (30.0 MPa) é menor que a dos 7 dias (35.0 MPa).",
+          "<b>Razão 7d/3d Incomum:</b> O valor de 1.59 está fora da banda dinâmica esperada (0.99 a 1.48).",
+          "<b>Razão 14d/7d Incomum:</b> O valor de 0.86 está fora da banda dinâmica esperada (0.99 a 1.26)."
+        ],
+        "excluidos": [],
+        "previsao": {
+          "3": 21.24371901648779,
+          "7": 26.56104553764723,
+          "14": 30,
+          "28": 32.669847888218506,
+          "63": 34.97402463032427
+        },
+        "media": {
+          "3": 24.32873740703602,
+          "7": 29.64606392819546,
+          "14": 33.08501839054823,
+          "28": 35.754866278766734,
+          "63": 38.0590430208725
+        },
+        "previsaoPlausivel": null,
+        "previsaoLivre": null,
+        "delta28": null,
+        "diagnosticoSatisfatorio": false,
+        "curva": {
+          "n": 179,
+          "somaY": 6420.271138852742
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 8373.111079733364
+        },
+        "beta1": {
+          "3": 0.6629802403322924,
+          "7": 0.8187307530779818,
+          "14": 0.9204959183596012,
+          "28": 1,
+          "63": 1.0689391057472464
+        }
+      }
+    },
+    {
+      "id": "e3_outlier_com_autodrop",
+      "desc": "Outlier C40 CP V: 3d=22 7d=35 14d=30, auto-exclusão ligada",
+      "entrada": {
+        "id": "e3_outlier_com_autodrop",
+        "desc": "Outlier C40 CP V: 3d=22 7d=35 14d=30, auto-exclusão ligada",
+        "fck": 40,
+        "sd": 4,
+        "cement": 0.2,
+        "mode": "adjusted",
+        "autoDrop": true,
+        "data": [
+          {
+            "days": 3,
+            "mpa": 22
+          },
+          {
+            "days": 7,
+            "mpa": 35
+          },
+          {
+            "days": 14,
+            "mpa": 30
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.2,
+        "analise": {
+          "fcm": 32.44277188053359,
+          "s": 0.18900686266476813,
+          "offset": 0.0003647174980656587,
+          "fcm_base": 46.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": false,
+          "plausibleTrendFcm": 32.44277188053359,
+          "plausibleTrendS": 0.18900686266476813,
+          "plausibleTrendOffset": 0,
+          "tendencySuperiority": 0,
+          "showFreeTrendCurve": false,
+          "freeTrendFcm": 32.44388252697331,
+          "freeTrendS": 0.18904151087180496,
+          "freeTrendOffset": 0
+        },
+        "avisos": [
+          "<b>Inconsistência de Monotonia:</b> A resistência aos 14 dias (30.0 MPa) é menor que a dos 7 dias (35.0 MPa).",
+          "<b>Razão 7d/3d Incomum:</b> O valor de 1.59 está fora da banda dinâmica esperada (0.99 a 1.48).",
+          "<b>Razão 14d/7d Incomum:</b> O valor de 0.86 está fora da banda dinâmica esperada (0.99 a 1.26)."
+        ],
+        "excluidos": [
+          7
+        ],
+        "previsao": {
+          "3": 22,
+          "7": 26.855139784026,
+          "14": 29.999367816184773,
+          "28": 32.442407163035526,
+          "63": 34.552137114984156
+        },
+        "media": {
+          "3": 22.000364717498066,
+          "7": 26.855504501524067,
+          "14": 29.999732533682838,
+          "28": 32.44277188053359,
+          "63": 34.55250183248222
+        },
+        "previsaoPlausivel": null,
+        "previsaoLivre": null,
+        "delta28": null,
+        "diagnosticoSatisfatorio": false,
+        "curva": {
+          "n": 179,
+          "somaY": 5826.018463439717
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 8373.111079733364
+        },
+        "beta1": {
+          "3": 0.6629802403322924,
+          "7": 0.8187307530779818,
+          "14": 0.9204959183596012,
+          "28": 1,
+          "63": 1.0689391057472464
+        }
+      }
+    },
+    {
+      "id": "e4_autodrop_sem_violacao",
+      "desc": "Auto-exclusão ligada sem razão fora da banda (dados de a2)",
+      "entrada": {
+        "id": "e4_autodrop_sem_violacao",
+        "desc": "Auto-exclusão ligada sem razão fora da banda (dados de a2)",
+        "fck": 45,
+        "sd": 4,
+        "cement": 0.2,
+        "mode": "adjusted",
+        "autoDrop": true,
+        "data": [
+          {
+            "days": 7,
+            "mpa": 28.5
+          },
+          {
+            "days": 14,
+            "mpa": 31.7
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.2,
+        "analise": {
+          "fcm": 34.17701708494112,
+          "s": 0.18164531753841165,
+          "offset": 0.00011395155005189395,
+          "fcm_base": 51.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": false,
+          "plausibleTrendFcm": 34.17701708494112,
+          "plausibleTrendS": 0.18164531753841165,
+          "plausibleTrendOffset": 0,
+          "tendencySuperiority": 0,
+          "showFreeTrendCurve": false,
+          "freeTrendFcm": 34.17716924165873,
+          "freeTrendS": 0.18165190277863136,
+          "freeTrendOffset": 0
+        },
+        "avisos": [],
+        "excluidos": [],
+        "previsao": {
+          "3": 23.529577958093274,
+          "7": 28.5,
+          "14": 31.69978359915476,
+          "28": 34.176903133391065,
+          "63": 36.31020038033361
+        },
+        "media": {
+          "3": 23.529691909643326,
+          "7": 28.500113951550052,
+          "14": 31.69989755070481,
+          "28": 34.17701708494112,
+          "63": 36.31031433188367
+        },
+        "previsaoPlausivel": null,
+        "previsaoLivre": null,
+        "delta28": null,
+        "diagnosticoSatisfatorio": false,
+        "curva": {
+          "n": 179,
+          "somaY": 6135.240899163277
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 9271.513556099593
+        },
+        "beta1": {
+          "3": 0.6629802403322924,
+          "7": 0.8187307530779818,
+          "14": 0.9204959183596012,
+          "28": 1,
+          "63": 1.0689391057472464
+        }
+      }
+    },
+    {
+      "id": "e5_autodrop_2d_3d",
+      "desc": "Auto-exclusão com par 3d/2d e dados fora de ordem: 7d=30 2d=10 3d=20",
+      "entrada": {
+        "id": "e5_autodrop_2d_3d",
+        "desc": "Auto-exclusão com par 3d/2d e dados fora de ordem: 7d=30 2d=10 3d=20",
+        "fck": 45,
+        "sd": 4,
+        "cement": 0.2,
+        "mode": "adjusted",
+        "autoDrop": true,
+        "data": [
+          {
+            "days": 7,
+            "mpa": 30
+          },
+          {
+            "days": 2,
+            "mpa": 10
+          },
+          {
+            "days": 3,
+            "mpa": 20
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.2,
+        "analise": {
+          "fcm": 17.303634572762128,
+          "s": 0.2,
+          "offset": 0,
+          "fcm_base": 51.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": false,
+          "plausibleTrendFcm": 17.303634572762128,
+          "plausibleTrendS": 0.2,
+          "plausibleTrendOffset": 0,
+          "tendencySuperiority": 0,
+          "showFreeTrendCurve": false,
+          "freeTrendFcm": 17.303634572762128,
+          "freeTrendS": 0.2,
+          "freeTrendOffset": 0
+        },
+        "avisos": [
+          "<b>Razão 3d/2d Incomum:</b> O valor de 2.00 está fora da banda dinâmica esperada (0.92 a 1.38).",
+          "<b>Razão 7d/3d Incomum:</b> O valor de 1.50 está fora da banda dinâmica esperada (0.99 a 1.48)."
+        ],
+        "excluidos": [
+          3,
+          7
+        ],
+        "previsao": {
+          "3": 11.471967807672,
+          "7": 14.16701776474374,
+          "14": 15.927924997013621,
+          "28": 17.303634572762128,
+          "63": 18.496531666385486
+        },
+        "media": {
+          "3": 11.471967807672,
+          "7": 14.16701776474374,
+          "14": 15.927924997013621,
+          "28": 17.303634572762128,
+          "63": 18.496531666385486
+        },
+        "previsaoPlausivel": null,
+        "previsaoLivre": null,
+        "delta28": null,
+        "diagnosticoSatisfatorio": false,
+        "curva": {
+          "n": 179,
+          "somaY": 3109.1256300611963
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 9271.513556099593
+        },
+        "beta1": {
+          "3": 0.6629802403322924,
+          "7": 0.8187307530779818,
+          "14": 0.9204959183596012,
+          "28": 1,
+          "63": 1.0689391057472464
+        }
+      }
+    },
+    {
+      "id": "f1_cpiii",
+      "desc": "CP III C30: 3d=12 7d=18 14d=24 28d=29",
+      "entrada": {
+        "id": "f1_cpiii",
+        "desc": "CP III C30: 3d=12 7d=18 14d=24 28d=29",
+        "fck": 30,
+        "sd": 4,
+        "cement": 0.38,
+        "mode": "adjusted",
+        "autoDrop": false,
+        "data": [
+          {
+            "days": 3,
+            "mpa": 12
+          },
+          {
+            "days": 7,
+            "mpa": 18
+          },
+          {
+            "days": 14,
+            "mpa": 24
+          },
+          {
+            "days": 28,
+            "mpa": 29
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.38,
+        "analise": {
+          "fcm": 28.386242817112244,
+          "s": 0.4099644127613108,
+          "offset": 0.8392075694539969,
+          "fcm_base": 36.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": false,
+          "plausibleTrendFcm": 28.386242817112244,
+          "plausibleTrendS": 0.4099644127613108,
+          "plausibleTrendOffset": 0,
+          "tendencySuperiority": 0,
+          "showFreeTrendCurve": false,
+          "freeTrendFcm": 28.831794012688327,
+          "freeTrendS": 0.44297593921602996,
+          "freeTrendOffset": 0
+        },
+        "avisos": [],
+        "excluidos": [],
+        "previsao": {
+          "3": 11.38486371070955,
+          "7": 18,
+          "14": 23.11374986914005,
+          "28": 27.547035247658247,
+          "63": 31.703699111857773
+        },
+        "media": {
+          "3": 12.224071280163546,
+          "7": 18.839207569453997,
+          "14": 23.952957438594048,
+          "28": 28.386242817112244,
+          "63": 32.54290668131177
+        },
+        "previsaoPlausivel": null,
+        "previsaoLivre": null,
+        "delta28": -5.010223283937079,
+        "diagnosticoSatisfatorio": false,
+        "curva": {
+          "n": 179,
+          "somaY": 5188.246773195026
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 6668.934282776821
+        },
+        "beta1": {
+          "3": 0.4579848490667192,
+          "7": 0.6838614092123558,
+          "14": 0.8543612598826952,
+          "28": 1,
+          "63": 1.135038608513941
+        }
+      }
+    },
+    {
+      "id": "g1_s_personalizado_005",
+      "desc": "s personalizado 0,05: C45 7d=35 14d=38",
+      "entrada": {
+        "id": "g1_s_personalizado_005",
+        "desc": "s personalizado 0,05: C45 7d=35 14d=38",
+        "fck": 45,
+        "sd": 4,
+        "cement": "custom",
+        "customS": 0.05,
+        "mode": "adjusted",
+        "autoDrop": false,
+        "data": [
+          {
+            "days": 7,
+            "mpa": 35
+          },
+          {
+            "days": 14,
+            "mpa": 38
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.05,
+        "analise": {
+          "fcm": 38.62838562578327,
+          "s": 0.07995341569977288,
+          "offset": 0.6601553703786109,
+          "fcm_base": 51.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": false,
+          "plausibleTrendFcm": 38.62838562578327,
+          "plausibleTrendS": 0.07995341569977288,
+          "plausibleTrendOffset": 0,
+          "tendencySuperiority": 0,
+          "showFreeTrendCurve": false,
+          "freeTrendFcm": 40.275168311147866,
+          "freeTrendS": 0.14038604046722253,
+          "freeTrendOffset": 0
+        },
+        "avisos": [],
+        "excluidos": [],
+        "previsao": {
+          "3": 32.11527239506959,
+          "7": 35,
+          "14": 36.70989517184116,
+          "28": 37.968230255404656,
+          "63": 39.01156194772367
+        },
+        "media": {
+          "3": 32.7754277654482,
+          "7": 35.66015537037861,
+          "14": 37.37005054221977,
+          "28": 38.62838562578327,
+          "63": 39.67171731810228
+        },
+        "previsaoPlausivel": null,
+        "previsaoLivre": null,
+        "delta28": null,
+        "diagnosticoSatisfatorio": false,
+        "curva": {
+          "n": 179,
+          "somaY": 6912.598970472049
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 9231.978244236048
+        },
+        "beta1": {
+          "3": 0.9023502566370709,
+          "7": 0.951229424500714,
+          "14": 0.9795023150303054,
+          "28": 1,
+          "63": 1.016806330386261
+        }
+      }
+    },
+    {
+      "id": "g2_s_personalizado_060",
+      "desc": "s personalizado 0,60: C45 7d=35 14d=38",
+      "entrada": {
+        "id": "g2_s_personalizado_060",
+        "desc": "s personalizado 0,60: C45 7d=35 14d=38",
+        "fck": 45,
+        "sd": 4,
+        "cement": "custom",
+        "customS": 0.6,
+        "mode": "adjusted",
+        "autoDrop": false,
+        "data": [
+          {
+            "days": 7,
+            "mpa": 35
+          },
+          {
+            "days": 14,
+            "mpa": 38
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.6,
+        "analise": {
+          "fcm": 51.6,
+          "s": 0.5700355872386893,
+          "offset": 2.7479365346368496,
+          "fcm_base": 51.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": true,
+          "plausibleTrendFcm": 52.788445229433776,
+          "plausibleTrendS": 0.5700355872386893,
+          "plausibleTrendOffset": 3.686438294013975,
+          "tendencySuperiority": 2.3031884291352167,
+          "showFreeTrendCurve": false,
+          "freeTrendFcm": 40.275168311147866,
+          "freeTrendS": 0.14038604046722253,
+          "freeTrendOffset": 0
+        },
+        "avisos": [
+          "<b>Razão 14d/7d Incomum:</b> O valor de 1.09 está fora da banda dinâmica esperada (1.25 a 1.59)."
+        ],
+        "excluidos": [],
+        "previsao": {
+          "3": 13.243762460932373,
+          "7": 26.43213764551665,
+          "14": 38,
+          "28": 48.85206346536315,
+          "63": 59.650082891157474
+        },
+        "media": {
+          "3": 15.991698995569223,
+          "7": 29.1800741801535,
+          "14": 40.74793653463685,
+          "28": 51.6,
+          "63": 62.398019425794324
+        },
+        "previsaoPlausivel": {
+          "3": 12.67357966244333,
+          "7": 26.165707978269893,
+          "14": 38,
+          "28": 49.1020069354198,
+          "63": 60.14872509520479
+        },
+        "previsaoLivre": null,
+        "delta28": null,
+        "diagnosticoSatisfatorio": true,
+        "curva": {
+          "n": 179,
+          "somaY": 9615.982971804937
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 9655.786927656029
+        },
+        "beta1": {
+          "3": 0.2914081905644627,
+          "7": 0.5488116360940265,
+          "14": 0.7799479148013165,
+          "28": 1,
+          "63": 1.2214027581601699
+        }
+      }
+    },
+    {
+      "id": "h1_normativo_2pontos",
+      "desc": "Modo normativo com dados de a2",
+      "entrada": {
+        "id": "h1_normativo_2pontos",
+        "desc": "Modo normativo com dados de a2",
+        "fck": 45,
+        "sd": 4,
+        "cement": 0.2,
+        "mode": "normative",
+        "autoDrop": false,
+        "data": [
+          {
+            "days": 7,
+            "mpa": 28.5
+          },
+          {
+            "days": 14,
+            "mpa": 31.7
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.2,
+        "analise": {
+          "fcm": 34.602275139370285,
+          "s": 0.2,
+          "offset": 0.15125303174624705,
+          "fcm_base": 51.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": false,
+          "plausibleTrendFcm": 34.602275139370285,
+          "plausibleTrendS": 0.2,
+          "plausibleTrendOffset": 0,
+          "tendencySuperiority": 0,
+          "showFreeTrendCurve": false,
+          "freeTrendFcm": 34.602275139370285,
+          "freeTrendS": 0.2,
+          "freeTrendOffset": 0
+        },
+        "avisos": [],
+        "excluidos": [],
+        "previsao": {
+          "3": 22.78937165619757,
+          "7": 28.178693751321916,
+          "14": 31.7,
+          "28": 34.45102210762404,
+          "63": 36.836472012552406
+        },
+        "media": {
+          "3": 22.940624687943817,
+          "7": 28.329946783068163,
+          "14": 31.851253031746246,
+          "28": 34.602275139370285,
+          "63": 36.98772504429865
+        },
+        "previsaoPlausivel": null,
+        "previsaoLivre": null,
+        "delta28": null,
+        "diagnosticoSatisfatorio": false,
+        "curva": {
+          "n": 179,
+          "somaY": 6217.353934623251
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 9271.513556099593
+        },
+        "beta1": {
+          "3": 0.6629802403322924,
+          "7": 0.8187307530779818,
+          "14": 0.9204959183596012,
+          "28": 1,
+          "63": 1.0689391057472464
+        }
+      }
+    },
+    {
+      "id": "h2_normativo_acima",
+      "desc": "Modo normativo com dados de c1 (acima, com 28 d)",
+      "entrada": {
+        "id": "h2_normativo_acima",
+        "desc": "Modo normativo com dados de c1 (acima, com 28 d)",
+        "fck": 45,
+        "sd": 4,
+        "cement": 0.2,
+        "mode": "normative",
+        "autoDrop": false,
+        "data": [
+          {
+            "days": 3,
+            "mpa": 40
+          },
+          {
+            "days": 7,
+            "mpa": 47
+          },
+          {
+            "days": 14,
+            "mpa": 52
+          },
+          {
+            "days": 28,
+            "mpa": 57
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.2,
+        "analise": {
+          "fcm": 51.6,
+          "s": 0.2,
+          "offset": 0,
+          "fcm_base": 51.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": true,
+          "plausibleTrendFcm": 57.4417507922743,
+          "plausibleTrendS": 0.2,
+          "plausibleTrendOffset": 0.8748971477178813,
+          "tendencySuperiority": 11.321222465647862,
+          "showFreeTrendCurve": false,
+          "freeTrendFcm": 57.4417507922743,
+          "freeTrendS": 0.2,
+          "freeTrendOffset": 0
+        },
+        "avisos": [],
+        "excluidos": [],
+        "previsao": {
+          "3": 34.20978040114629,
+          "7": 42.246506858823864,
+          "14": 47.497589387355426,
+          "28": 51.6,
+          "63": 55.15725785655791
+        },
+        "media": {
+          "3": 34.20978040114629,
+          "7": 42.246506858823864,
+          "14": 47.497589387355426,
+          "28": 51.6,
+          "63": 55.15725785655791
+        },
+        "previsaoPlausivel": {
+          "3": 37.20784859765178,
+          "7": 46.154430736558616,
+          "14": 52,
+          "28": 56.56685364455642,
+          "63": 60.52683657673199
+        },
+        "previsaoLivre": null,
+        "delta28": -9.473684210526313,
+        "diagnosticoSatisfatorio": true,
+        "curva": {
+          "n": 179,
+          "somaY": 9271.513556099593
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 9271.513556099593
+        },
+        "beta1": {
+          "3": 0.6629802403322924,
+          "7": 0.8187307530779818,
+          "14": 0.9204959183596012,
+          "28": 1,
+          "63": 1.0689391057472464
+        }
+      }
+    },
+    {
+      "id": "i1_sem_dados",
+      "desc": "Sem ensaios (só curva de referência)",
+      "entrada": {
+        "id": "i1_sem_dados",
+        "desc": "Sem ensaios (só curva de referência)",
+        "fck": 45,
+        "sd": 4,
+        "cement": 0.2,
+        "mode": "adjusted",
+        "autoDrop": false,
+        "data": []
+      },
+      "saida": {
+        "s_normative": 0.2,
+        "analise": {
+          "fcm": 51.6,
+          "s": 0.2,
+          "offset": 0,
+          "fcm_base": 51.6,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": false,
+          "plausibleTrendFcm": 51.6,
+          "plausibleTrendS": 0.2,
+          "plausibleTrendOffset": 0,
+          "tendencySuperiority": 0,
+          "showFreeTrendCurve": false,
+          "freeTrendFcm": 51.6,
+          "freeTrendS": 0.2,
+          "freeTrendOffset": 0
+        },
+        "avisos": [],
+        "excluidos": [],
+        "previsao": {
+          "3": 34.20978040114629,
+          "7": 42.246506858823864,
+          "14": 47.497589387355426,
+          "28": 51.6,
+          "63": 55.15725785655791
+        },
+        "media": {
+          "3": 34.20978040114629,
+          "7": 42.246506858823864,
+          "14": 47.497589387355426,
+          "28": 51.6,
+          "63": 55.15725785655791
+        },
+        "previsaoPlausivel": null,
+        "previsaoLivre": null,
+        "delta28": null,
+        "diagnosticoSatisfatorio": true,
+        "curva": {
+          "n": 179,
+          "somaY": 9271.513556099593
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 9271.513556099593
+        },
+        "beta1": {
+          "3": 0.6629802403322924,
+          "7": 0.8187307530779818,
+          "14": 0.9204959183596012,
+          "28": 1,
+          "63": 1.0689391057472464
+        }
+      }
+    },
+    {
+      "id": "k1_sd_6",
+      "desc": "sd = 6, C35 CP II: 7d=25 28d=38",
+      "entrada": {
+        "id": "k1_sd_6",
+        "desc": "sd = 6, C35 CP II: 7d=25 28d=38",
+        "fck": 35,
+        "sd": 6,
+        "cement": 0.25,
+        "mode": "adjusted",
+        "autoDrop": false,
+        "data": [
+          {
+            "days": 7,
+            "mpa": 25
+          },
+          {
+            "days": 28,
+            "mpa": 38
+          }
+        ]
+      },
+      "saida": {
+        "s_normative": 0.25,
+        "analise": {
+          "fcm": 36.21019956377014,
+          "s": 0.2799644127613108,
+          "offset": 2.3680540413063476,
+          "fcm_base": 44.9,
+          "ruleApplied": false,
+          "showPlausibleTrendCurve": false,
+          "plausibleTrendFcm": 36.21019956377014,
+          "plausibleTrendS": 0.2799644127613108,
+          "plausibleTrendOffset": 0,
+          "tendencySuperiority": 0,
+          "showFreeTrendCurve": false,
+          "freeTrendFcm": 38.000091078963735,
+          "freeTrendS": 0.41871826933041423,
+          "freeTrendOffset": 0
+        },
+        "avisos": [],
+        "excluidos": [],
+        "previsao": {
+          "3": 18.000654718000344,
+          "7": 25,
+          "14": 29.877358240783412,
+          "28": 33.842145522463795,
+          "63": 37.38403149203728
+        },
+        "media": {
+          "3": 20.368708759306692,
+          "7": 27.368054041306348,
+          "14": 32.24541228208976,
+          "28": 36.21019956377014,
+          "63": 39.75208553334363
+        },
+        "previsaoPlausivel": null,
+        "previsaoLivre": null,
+        "delta28": -10.941722309305801,
+        "diagnosticoSatisfatorio": false,
+        "curva": {
+          "n": 179,
+          "somaY": 6540.091574296942
+        },
+        "curvaRef": {
+          "n": 179,
+          "somaY": 8092.172829388874
+        },
+        "beta1": {
+          "3": 0.5982403900091511,
+          "7": 0.7788007830714049,
+          "14": 0.9016278830091764,
+          "28": 1,
+          "63": 1.086904049521229
+        }
+      }
+    }
+  ]
+}
