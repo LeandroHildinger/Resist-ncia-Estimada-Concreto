@@ -2,7 +2,8 @@
 
 ## v2.0 + pergunta inversa (2026-10-20, publicação 2026-10-20.4)
 
-- Novo campo opcional "Resistência-alvo" no passo ③: o app responde "≈ dia E", o primeiro dia inteiro em que a curva de projeção conservadora alcança o alvo (ex.: mínima para protender). Inversão fechada da mesma curva (`diaParaResistencia` em `js/calc.js`): t = 28 / [1 − ln((alvo + desconto)/fcm) / s]². Avisos: extrapolação (dia > 28), "Não atinge" (alvo acima do limite da curva), alvo já alcançado pela projeção até o último ensaio, confiança baixa.
+- Novo campo opcional "Resistência-alvo" no passo ③: o app responde "≈ dia E", o primeiro dia inteiro em que a curva de projeção conservadora alcança o alvo (ex.: mínima para protender). Inversão fechada da mesma curva (`diaParaResistencia` em `js/calc.js`): t = 28 / [1 − ln((alvo + desconto)/fcm) / s]². Avisos: extrapolação (dia > 28), "Não atinge até 90 d" (só chega depois de 90 d ou nunca), alvo já alcançado pela projeção até o último ensaio, confiança baixa.
+- Horizonte de 90 d (decisão do Leandro, 20/10/2026): se a projeção só chega ao alvo depois de 90 d, ou nunca chega, a resposta é "Não atinge até 90 d", com a projeção aos 90 d.
 - Gráfico: linha horizontal tracejada do alvo, ponto de cruzamento e marca "≈ dia E". Relatório e PDF trazem a resposta; o alvo fica salvo no navegador.
 - Nenhum número existente muda (teste compara `analyze` com e sem alvo em todos os cenários ouro).
 

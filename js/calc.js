@@ -269,6 +269,7 @@
     const IDADES_PADRAO = [3, 7, 14, 28, 63];
     const SD_PADRAO = 4.0;
     const TOL_S = 0.0005;            // T-22
+    const HORIZONTE_ALVO = 90;       // pergunta inversa: além disso, "Não atinge até 90 d" (decisão do Leandro, 20/10)
     const CIMENTOS = { '0.25': 'CP I / CP II', '0.38': 'CP III / CP IV', '0.20': 'CP V-ARI' };
 
     const vazio = v => v === undefined || v === null || (typeof v === 'string' && v.trim() === '') || (typeof v === 'number' && Number.isNaN(v));
@@ -394,7 +395,10 @@
      *   valido, motivo, alvo, dia (fração de dia; null se não atinge), diaInteiro (1º dia inteiro com
      *   f_proj >= alvo: arredonda para cima, lado seguro), extrapolacao (dia > 28, D3), naoAtinge
      *   (alvo >= assíntota), jaAtingido (alvo <= f_proj em maiorIdade; analyze passa a maior idade usada no ajuste), assintota,
-     *   maiorIdade, projecaoMaiorIdade }
+     *   maiorIdade, projecaoMaiorIdade, horizonte (90 d), foraDoHorizonte (não atinge até 90 d: naoAtinge ou dia > 90),
+     *   projecaoHorizonte (f_proj aos 90 d) }
+     * Horizonte de 90 d (decisão do Leandro, 20/10): além dele a resposta é "Não atinge até 90 d" (o gráfico vai
+     * até 90 d e um dia como 47.158 seria lido como previsão).
      * alvo aceita texto com vírgula. maiorIdade é opcional (sem ela, jaAtingido = false).
      */
     function diaParaResistencia(analise, alvo, maiorIdade) {
@@ -407,9 +411,10 @@
         const assintota = fcm * Math.exp(s) - offset;
         const temIdade = Number.isFinite(maiorIdade) && maiorIdade > 0;
         const projecaoMaiorIdade = temIdade ? preverEm(analise, maiorIdade).estimada : null;
-        const base = { valido: true, motivo: null, alvo: R, assintota, maiorIdade: temIdade ? maiorIdade : null, projecaoMaiorIdade };
+        const base = { valido: true, motivo: null, alvo: R, assintota, maiorIdade: temIdade ? maiorIdade : null, projecaoMaiorIdade,
+            horizonte: HORIZONTE_ALVO, projecaoHorizonte: preverEm(analise, HORIZONTE_ALVO).estimada };
         if (R >= assintota) {
-            return { ...base, dia: null, diaInteiro: null, extrapolacao: false, naoAtinge: true, jaAtingido: false };
+            return { ...base, dia: null, diaInteiro: null, extrapolacao: false, naoAtinge: true, foraDoHorizonte: true, jaAtingido: false };
         }
         const denom = 1 - Math.log((R + offset) / fcm) / s;    // > 0 porque R + offset < fcm·e^s
         const dia = 28 / (denom * denom);
@@ -420,6 +425,7 @@
         // Garantia: no dia inteiro informado a projeção já alcança o alvo.
         if (preverEm(analise, diaInteiro).estimada < R - tol) diaInteiro += 1;
         return { ...base, dia, diaInteiro, extrapolacao: dia > 28 + 1e-9, naoAtinge: false,
+            foraDoHorizonte: dia > HORIZONTE_ALVO + 1e-9,
             jaAtingido: temIdade && R <= projecaoMaiorIdade + tol };
     }
 
@@ -620,6 +626,6 @@
     return {
         Beta, DataValidator, Calculator,
         analyze, parseCsv, validarLinha, agregarPorIdade, mediana, paraNumero, preverEm, compararS, diaParaResistencia,
-        IDADES_PADRAO, SD_PADRAO, CIMENTOS, MSG_REGRA_REFERENCIA
+        IDADES_PADRAO, SD_PADRAO, CIMENTOS, MSG_REGRA_REFERENCIA, HORIZONTE_ALVO
     };
 }));

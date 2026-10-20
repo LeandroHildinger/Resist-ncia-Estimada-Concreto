@@ -73,6 +73,26 @@ test('alvo na assíntota ou acima -> naoAtinge, sem dia', () => {
     assert.ok(quase.dia > 1e5 && quase.extrapolacao);
 });
 
+test('horizonte de 90 d (decisão do Leandro): depois disso, ou nunca, foraDoHorizonte', () => {
+    const r = analyze(C45);
+    const a = r.analise;
+    const p90 = preverEm(a, 90).estimada;
+    const no90 = diaParaResistencia(a, p90, 14);
+    perto(no90.dia, 90, 'alvo = projeção aos 90 d', 1e-10);
+    assert.equal(no90.diaInteiro, 90);
+    assert.equal(no90.foraDoHorizonte, false, 'dia 90 ainda dentro');
+    const depois = analyze({ ...C45, resistenciaAlvo: 55 }).alvo;   // 174 d
+    assert.ok(depois.dia > 90);
+    assert.equal(depois.foraDoHorizonte, true);
+    assert.equal(depois.naoAtinge, false);
+    assert.equal(depois.horizonte, 90);
+    perto(depois.projecaoHorizonte, p90, 'projeção aos 90 d');
+    const nunca = analyze({ ...C45, resistenciaAlvo: 70 }).alvo;
+    assert.equal(nunca.naoAtinge, true);
+    assert.equal(nunca.foraDoHorizonte, true);
+    assert.equal(analyze({ ...C45, resistenciaAlvo: 50 }).alvo.foraDoHorizonte, false, '43 d: responde o dia');
+});
+
 test('alvo igual à projeção na maior idade ensaiada -> jaAtingido (limite inclusivo)', () => {
     const r = analyze(C45);
     const p14 = preverEm(r.analise, 14).estimada;

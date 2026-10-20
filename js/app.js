@@ -405,14 +405,14 @@
         const x = r && r.ok ? r.alvo : null;
         if (!x || !x.valido) return null;
         const R = `${f1(x.alvo)} MPa`;
-        if (x.naoAtinge) {
-            return { resposta: 'Não atinge', aviso: null,
-                detalhe: `A projeção conservadora não chega a ${R} em nenhuma idade: a curva tende a ${f1(x.assintota)} MPa.` };
+        if (x.foraDoHorizonte) {   // decisão do Leandro (20/10): nada de "dia 47.158"
+            return { resposta: `Não atinge até ${fd(x.horizonte)} d`, aviso: null,
+                detalhe: `A projeção conservadora não chega a ${R} até ${fd(x.horizonte)} d: aos ${fd(x.horizonte)} d ela está em ${f1(x.projecaoHorizonte)} MPa`
+                    + (x.naoAtinge ? ` e tende a ${f1(x.assintota)} MPa.` : '.') };
         }
         const diaFrac = Math.ceil(x.dia * 10 - 1e-6) / 10;   // 1 casa, para cima: 9,03 d -> 9,1 d (coerente com "dia 10")
         let detalhe = `A projeção conservadora chega a ${R} com ${fn(diaFrac, 1)} d (dia arredondado para cima).`;
         if (x.jaAtingido) detalhe += ` Pela projeção, o alvo já foi alcançado até o ensaio mais recente usado no ajuste (${fd(x.maiorIdade)} d).`;
-        if (x.diaInteiro > 90) detalhe += ' Fora do gráfico (vai até 90 d).';
         if (r.confianca.nivel === 'baixa') detalhe += ` Confiança ${r.confianca.rotulo}: use como indicação e confirme com novo ensaio.`;
         return { resposta: `≈ dia ${x.diaInteiro.toLocaleString('pt-BR')}`, detalhe,
             aviso: x.extrapolacao ? 'Dia acima de 28 d: extrapolação, fora do escopo da NBR 6118. O ganho depois dos 28 d depende de cura e umidade e não é garantido.' : null };
@@ -667,7 +667,7 @@
                     anot.alvo = { type: 'line', display: true, yMin: x.alvo, yMax: x.alvo, borderColor: cores.alvo, borderWidth: 2, borderDash: [4, 4],
                         drawTime: 'beforeDatasetsDraw',
                         label: { enabled: true, content: `alvo ${f1(x.alvo)} MPa`, position: Math.abs(x.alvo - r.params.fck) < 4 ? 'center' : 'end', backgroundColor: cores.superficie, color: cores.alvo, font: { size: Math.round(11 * escala), weight: '600' } } };
-                    if (!x.naoAtinge && x.dia <= 90) {
+                    if (!x.foraDoHorizonte) {
                         anot.alvoDia = { type: 'line', display: true, xMin: x.dia, xMax: x.dia, yMin: 0, yMax: x.alvo, borderColor: comAlfa(cores.alvo, 0.7), borderWidth: 1.5, borderDash: [2, 3],
                             drawTime: 'beforeDatasetsDraw',
                             label: { enabled: true, content: `≈ dia ${x.diaInteiro}`, position: 'start', yAdjust: x.dia >= 28 ? -36 * escala : 0,   // acima da etiqueta de extrapolação
@@ -676,7 +676,7 @@
                             backgroundColor: cores.superficie, borderColor: cores.alvo };
                     }
                 }
-                const maxY = Math.max(r.params.fck, x && !x.naoAtinge ? x.alvo : 0, ...   // alvo inatingível não achata as curvas
+                const maxY = Math.max(r.params.fck, x && !x.foraDoHorizonte ? x.alvo : 0, ...   // alvo não atingido até 90 d não achata as curvas
                     ds[4].data.map(p => p.y), ...ds[5].data.map(p => p.y), ...ds[1].data.map(p => p.y));
                 o.scales.y.suggestedMax = Math.ceil(maxY * 1.1 / 5) * 5;
             }
