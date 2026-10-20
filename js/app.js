@@ -304,8 +304,12 @@
         toastDesfazer = desfazer || null;
         $('toastDesfazer').hidden = !desfazer;
         $('toast').hidden = false;
+        armarToast();
+    }
+    // Impeccable (20/10): 10 s (era 5 s) e o tempo para enquanto o dedo, o mouse ou o foco estão no aviso.
+    function armarToast() {
         clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => { $('toast').hidden = true; toastDesfazer = null; }, 5000);
+        toastTimer = setTimeout(() => { $('toast').hidden = true; toastDesfazer = null; }, 10000);
     }
 
     // ------------------------------------------------------------------ cartão de resultado
@@ -397,6 +401,18 @@
         $('rfSelo').className = 'selo selo-' + r.selo.codigo;
         $('rfSelo').textContent = r.selo.texto;
         $('rfBase').textContent = `confiança ${r.confianca.rotulo}`;
+        const ta = textoAlvo();
+        $('rfAlvo').hidden = !ta;
+        $('rfAlvo').className = 'rf-alvo' + (ta ? ' alvo-' + ta.caso : '');
+        $('rfAlvo').textContent = ta ? `Alvo ${f1(r.alvo.alvo)} MPa: ${ta.resposta}` : '';
+        anunciar(`${f1(prev.estimada)} MPa aos ${fd(prev.t)} dias, ${r.selo.texto}.${ta ? ` Alvo ${f1(r.alvo.alvo)} MPa: ${ta.resposta}.` : ''}`);
+    }
+
+    // Leitor de tela: uma frase curta, só depois que a digitação assenta (não o cartão inteiro a cada tecla).
+    let anuncioTimer = null, ultimoAnuncio = '';
+    function anunciar(texto) {
+        clearTimeout(anuncioTimer);
+        anuncioTimer = setTimeout(() => { if (texto !== ultimoAnuncio) { ultimoAnuncio = texto; $('anuncio').textContent = texto; } }, 1200);
     }
 
     // ------------------------------------------------------------------ pergunta inversa: dia da resistência-alvo
@@ -407,7 +423,7 @@
         const R = `${f1(x.alvo)} MPa`;
         const AVISO_EXTRAP = 'Acima de 28 d: extrapolação, fora do escopo da NBR 6118. O ganho depois dos 28 d depende de cura e umidade e não é garantido.';
         if (x.foraDoHorizonte) {   // decisão do Leandro (20/10): nada de "dia 47.158"; o valor aos 90 d também é extrapolação
-            return { resposta: `Não atinge até ${fd(x.horizonte)} d`, aviso: AVISO_EXTRAP,
+            return { resposta: `Não atinge até ${fd(x.horizonte)} d`, caso: 'fora', aviso: AVISO_EXTRAP, confirma: null,
                 detalhe: `A projeção conservadora não chega a ${R} até ${fd(x.horizonte)} d: aos ${fd(x.horizonte)} d ela está em ${f1(x.projecaoHorizonte)} MPa`
                     + (x.naoAtinge ? ` e tende a ${f1(x.assintota)} MPa.` : '.') };
         }
@@ -415,7 +431,12 @@
         let detalhe = `A projeção conservadora chega a ${R} com ${fn(diaFrac, 1)} d (dia arredondado para cima).`;
         if (x.jaAtingido) detalhe += ` Pela projeção, o alvo já foi alcançado até o ensaio mais recente usado no ajuste (${fd(x.maiorIdade)} d).`;
         if (r.confianca.nivel === 'baixa') detalhe += ` Confiança ${r.confianca.rotulo}: use como indicação e confirme com novo ensaio.`;
-        return { resposta: `≈ dia ${x.diaInteiro.toLocaleString('pt-BR')}`, detalhe,
+        // D9 (Leandro, 20/10): a manchete diz o caso; o lembrete do rompimento fica visível na resposta.
+        const dia = x.diaInteiro.toLocaleString('pt-BR');
+        const caso = x.jaAtingido ? 'ja' : x.extrapolacao ? 'extrap' : 'escopo';
+        const resposta = caso === 'ja' ? `Já alcançado · dia ${dia}` : caso === 'extrap' ? `Dia ${dia} · extrapolação` : `Dia ${dia}`;
+        return { resposta, caso, detalhe,
+            confirma: caso === 'ja' ? `Confira o ensaio de ${fd(x.maiorIdade)} d: o resultado medido vale mais que a projeção.` : 'Confirme rompendo o CP nessa data antes de liberar.',
             aviso: x.extrapolacao ? AVISO_EXTRAP : null };
     }
     function renderAlvo() {
@@ -425,7 +446,8 @@
         $('alvoErro').textContent = invalido ? 'Informe uma resistência maior que 0 (ex.: 35 ou 32,5).' : '';
         if (invalido) $('alvo').setAttribute('aria-invalid', 'true'); else $('alvo').removeAttribute('aria-invalid');
         $('alvoResp').hidden = !t;
-        $('alvoResp').innerHTML = t ? `<span class="alvo-dia num">${esc(t.resposta)}</span>${esc(t.detalhe)}` : '';
+        $('alvoResp').className = 'alvo-resp' + (t ? ' alvo-' + t.caso : '');
+        $('alvoResp').innerHTML = t ? `<span class="alvo-dia num">${esc(t.resposta)}</span>${esc(t.detalhe)}${t.confirma ? `<span class="alvo-confirma">${esc(t.confirma)}</span>` : ''}` : '';
         $('alvoExtrap').hidden = !(t && t.aviso);
     }
 
@@ -575,11 +597,11 @@
     function curva(fcm, s, desconto) {
         return C.Calculator.generateCurveData(fcm, s).map(p => ({ x: p.x, y: Math.max(0, p.y - desconto) }));
     }
-    function estiloLinha(ds, cor, tracoBase) {
+    function estiloLinha(ds, cor, tracoBase, alfaExtrap) {
         ds.borderColor = cor;
         ds.backgroundColor = cor;
         ds.segment = {
-            borderColor: ctx => ctx.p0.parsed.x >= 28 ? comAlfa(cor, 0.4) : cor,
+            borderColor: ctx => ctx.p0.parsed.x >= 28 ? comAlfa(cor, alfaExtrap || 0.4) : cor,
             borderDash: ctx => ctx.p0.parsed.x >= 28 ? [6, 4] : (tracoBase || [])
         };
     }
@@ -611,7 +633,7 @@
         const ds = chart.data.datasets;
         ds.forEach(d => { d.data = []; });
         estiloLinha(ds[0], cores.ref, [5, 5]);
-        estiloLinha(ds[1], cores.proj);
+        estiloLinha(ds[1], cores.proj, undefined, 0.75);   // Impeccable (20/10): projeção dominante também depois de 28 d
         estiloLinha(ds[2], cores.tend, [8, 3]);
         estiloLinha(ds[3], cores.livre, [2, 3]);
         ds[4].backgroundColor = cores.ensaio; ds[4].borderColor = cores.superficie;
@@ -639,6 +661,7 @@
         });
         const anot = {};
 
+        o.scales.y.suggestedMax = 50;   // gráfico vazio ou com erro: escala plausível (não 0 a 1)
         if (!r || !r.ok) {
             const inicio = String(estado.fck).trim() === '' && estado.rows.length === 0;
             msg = inicio ? 'Informe o fck de projeto para ver a curva esperada pela norma.' : 'Corrija os parâmetros para ver o gráfico.';
@@ -671,7 +694,7 @@
                     if (!x.foraDoHorizonte) {
                         anot.alvoDia = { type: 'line', display: true, xMin: x.dia, xMax: x.dia, yMin: 0, yMax: x.alvo, borderColor: comAlfa(cores.alvo, 0.7), borderWidth: 1.5, borderDash: [2, 3],
                             drawTime: 'beforeDatasetsDraw',
-                            label: { enabled: true, content: `≈ dia ${x.diaInteiro}`, position: 'start', yAdjust: x.dia >= 28 ? -36 * escala : 0,   // acima da etiqueta de extrapolação
+                            label: { enabled: true, content: `dia ${x.diaInteiro}`, position: 'start', yAdjust: x.dia >= 28 ? -36 * escala : 0,   // acima da etiqueta de extrapolação
                                 backgroundColor: cores.alvo, color: cores.superficie, font: { size: Math.round(11 * escala), weight: '700' } } };
                         anot.alvoPonto = { type: 'point', display: true, xValue: x.dia, yValue: x.alvo, radius: 6 * escala, borderWidth: 2 * escala,
                             backgroundColor: cores.superficie, borderColor: cores.alvo };
@@ -731,7 +754,7 @@
 
         let h = `<div class="rel-veredito ${classe}">${veredito}</div>`;
         const ta = textoAlvo();
-        if (ta) h += `<h4>Resistência-alvo</h4><ul><li><b>${esc(ta.resposta)}</b> para ${f1(r.alvo.alvo)} MPa. ${esc(ta.detalhe)}</li>${ta.aviso ? `<li>${esc(ta.aviso)}</li>` : ''}</ul>`;
+        if (ta) h += `<h4>Resistência-alvo</h4><ul><li><b>${esc(ta.resposta)}</b> para ${f1(r.alvo.alvo)} MPa. ${esc(ta.detalhe)}${ta.confirma ? ` ${esc(ta.confirma)}` : ''}</li>${ta.aviso ? `<li>${esc(ta.aviso)}</li>` : ''}</ul>`;
         h += `<h4>Base da estimativa</h4><ul>
             <li>Confiança: ${esc(r.confianca.rotulo)}. ${esc(r.confianca.motivo)}</li>
             <li>${esc(descricaoBase())}</li>
@@ -872,7 +895,7 @@
         linhasRes.push(['bold', 13, `Resistência estimada conservadora aos 28 d: ${f1(r.estimada28)} MPa`]);
         if (prev && prev.t !== 28) linhasRes.push(['normal', 10, `Aos ${fd(prev.t)} d: ${f1(prev.estimada)} MPa${prev.extrapolacao ? ' (extrapolação > 28 d, fora do escopo da NBR 6118)' : ''}`]);
         const ta = textoAlvo();
-        if (ta) linhasRes.push(['bold', 10, `Resistência-alvo ${f1(r.alvo.alvo)} MPa: ${ta.resposta}${ta.aviso ? ' (extrapolação > 28 d, fora do escopo da NBR 6118)' : ''}`], ['normal', 9.5, ta.detalhe]);
+        if (ta) linhasRes.push(['bold', 10, `Resistência-alvo ${f1(r.alvo.alvo)} MPa: ${ta.resposta}${ta.aviso && ta.caso !== 'extrap' ? ' (extrapolação > 28 d, fora do escopo da NBR 6118)' : ta.aviso ? ' (> 28 d, fora do escopo da NBR 6118)' : ''}`], ['normal', 9.5, ta.detalhe + (ta.confirma ? ' ' + ta.confirma : '')]);
         linhasRes.push(['bold', 11, `${r.selo.texto}${r.selo.base === 'estimativa' ? ` o fck de ${fd(p.fck)} MPa (${sinal(r.estimada28 - p.fck)} MPa aos 28 d)` : ''}`, true]);
         if (r.selo.base !== 'estimativa') linhasRes.push(['normal', 9.5, r.selo.motivo]);   // na estimativa o selo já traz o número
         linhasRes.push(['normal', 9.5, `Confiança: ${r.confianca.rotulo}. ${r.confianca.motivo}`]);
@@ -1048,6 +1071,8 @@
             mostrarToast('Lote limpo.', () => aplicarEstado(antes));
             $('fck').focus();
         });
+        ['pointerenter', 'focusin'].forEach(ev => $('toast').addEventListener(ev, () => clearTimeout(toastTimer)));
+        ['pointerleave', 'focusout'].forEach(ev => $('toast').addEventListener(ev, () => { if (!$('toast').hidden) armarToast(); }));
         $('toastDesfazer').addEventListener('click', () => {
             const f = toastDesfazer;
             $('toast').hidden = true; toastDesfazer = null; clearTimeout(toastTimer);

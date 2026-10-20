@@ -42,6 +42,7 @@
         <span class="rf-valor num" id="rfValor">--</span>
         <span class="selo" id="rfSelo"></span>
         <span class="res-base" id="rfBase"></span>
+        <span class="rf-alvo" id="rfAlvo" hidden></span>
     </a>
 </div>
 
@@ -54,7 +55,7 @@
             <div class="campo">
                 <label for="fck">fck de projeto</label>
                 <div class="entrada"><input id="fck" type="text" inputmode="decimal" autocomplete="off" placeholder="ex.: 45" aria-describedby="fckErro"><span class="unid">MPa</span></div>
-                <div class="erro-campo" id="fckErro" role="alert"></div>
+                <div class="erro-campo" id="fckErro" aria-live="polite"></div>
             </div>
 
             <div class="campo">
@@ -74,7 +75,7 @@
                         <div class="popover" id="ajS" hidden><p>Coeficiente s da NBR 6118 na curva β1 = e<sup>s·(1−√(28/t))</sup>. Quanto menor, mais rápido o ganho inicial. Valores de 0,05 a 0,60.</p></div></span>
                 </div>
                 <div class="entrada"><input id="customS" type="text" inputmode="decimal" autocomplete="off" placeholder="ex.: 0,25" aria-describedby="customSErro"></div>
-                <div class="erro-campo" id="customSErro" role="alert"></div>
+                <div class="erro-campo" id="customSErro" aria-live="polite"></div>
             </div>
 
             <details class="recolhivel" id="avancadas">
@@ -87,7 +88,7 @@
                                 <div class="popover" id="ajSd" hidden><p>Define o fcm alvo de dosagem: fck + 1,65·sd (NBR 12655).</p><p>Sem sd conhecido: 4,0 MPa (condição A). Condições B e C usam valores maiores. Com sd conhecido (20 ou mais resultados), o mínimo é 2,0 MPa.</p><p>Vazio = 4,0 MPa.</p></div></span>
                         </div>
                         <div class="entrada"><input id="sd" type="text" inputmode="decimal" autocomplete="off" placeholder="4,0 (padrão)" aria-describedby="sdErro"><span class="unid">MPa</span></div>
-                        <div class="erro-campo" id="sdErro" role="alert"></div>
+                        <div class="erro-campo" id="sdErro" aria-live="polite"></div>
                     </div>
                     <div class="campo">
                         <div class="rotulo-linha">
@@ -137,7 +138,7 @@
                 </div>
                 <button type="submit" class="btn btn-primario">+ Adicionar ensaio</button>
             </form>
-            <div class="erro-campo" id="formErro" role="alert"></div>
+            <div class="erro-campo" id="formErro" aria-live="polite"></div>
 
             <ul class="lista-ensaios" id="listaEnsaios" aria-label="Ensaios cadastrados"></ul>
             <div class="lista-vazia" id="listaVazia">Nenhum ensaio ainda. Cada CP rompido vira uma linha; CPs da mesma idade são combinados pela mediana.</div>
@@ -154,7 +155,8 @@
 
     <!-- ③ Resultado -->
     <div class="coluna coluna-resultado">
-        <section class="cartao resultado" id="passo3" aria-labelledby="t3" aria-live="polite">
+        <section class="cartao resultado" id="passo3" aria-labelledby="t3">
+            <div class="sr-only" id="anuncio" aria-live="polite"></div>
             <div class="res-topo">
                 <div class="passo-titulo" style="margin:0"><span class="passo-n" aria-hidden="true">3</span><h2 id="t3">Resultado</h2></div>
                 <span class="selo selo-exemplo" id="seloExemplo" hidden>EXEMPLO</span>
@@ -162,7 +164,7 @@
 
             <div id="resVazio" class="res-vazio">
                 <p id="resVazioTexto">Adicione o 1º ensaio para ver a estimativa.</p>
-                <button type="button" class="btn btn-primario" id="btnExemplo2">Ver um exemplo</button>
+                <button type="button" class="btn btn-primario" id="btnExemplo2">Carregar exemplo</button>
             </div>
 
             <div id="resErro" class="msg msg-erro" hidden></div>
@@ -192,7 +194,7 @@
                             <div class="popover" id="ajAlvo" hidden><p>Pergunta inversa: <b>em que dia</b> a projeção conservadora chega a esta resistência? Ex.: mínima para protender, desformar, içar ou liberar carga.</p><p>Serve para planejar a data e não desperdiçar CP: a liberação continua dependendo do rompimento do CP nessa data.</p><p>Usa a mesma curva do resultado acima; o dia é arredondado para cima. Acima de 28 d é extrapolação (fora do escopo da NBR 6118). Se só chegar depois de 90 d, a resposta é "Não atinge até 90 d".</p></div></span>
                         <div class="entrada"><input id="alvo" type="text" inputmode="decimal" autocomplete="off" placeholder="ex.: 35" aria-describedby="alvoErro alvoResp"><span class="unid">MPa</span></div>
                     </div>
-                    <span class="erro-campo" id="alvoErro"></span>
+                    <span class="erro-campo" id="alvoErro" aria-live="polite"></span>
                     <p class="alvo-resp" id="alvoResp" hidden></p>
                     <div class="msg msg-atencao" id="alvoExtrap" hidden>Acima de 28 d: extrapolação, fora do escopo da NBR 6118. O ganho depois dos 28 d depende de cura e umidade e não é garantido.</div>
                 </div>
@@ -239,7 +241,7 @@
 </main>
 
 <footer class="rodape">
-    Estimativa fck <span id="versaoRodape">v2.0</span> · Desenvolvido por Leandro Hildinger Cavalcanti · Apoio à decisão: não substitui o controle por ensaio aos 28 dias.
+    Estimativa fck <span id="versaoRodape">v2.0</span> · Desenvolvido por Leandro Hildinger Cavalcanti · Apoio à decisão: não substitui o controle por ensaio aos 28 dias. · <a href="https://github.com/LeandroHildinger/Resist-ncia-Estimada-Concreto/blob/main/Manual.README.md" target="_blank" rel="noopener">Manual</a>
 </footer>
 
 <div class="toast" id="toast" role="status" hidden><span id="toastTexto"></span><button type="button" class="btn" id="toastDesfazer">Desfazer</button></div>

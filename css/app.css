@@ -6,9 +6,10 @@
     --surface: #ffffff;
     --surface-2: #f7f9fa;
     --border: #d9dfe4;
+    --border-input: #7f8c98;     /* borda de campo >= 3:1 (WCAG 1.4.11), legível ao sol */
     --ink: #17212b;
     --ink-2: #4a5866;
-    --ink-3: #6b7885;
+    --ink-3: #5b6875;            /* Impeccable (20/10): >= 4,5:1 sobre bg, campo e neutral-soft */
     --accent: #0f4c5c;
     --accent-ink: #ffffff;
     --accent-soft: #e3eff2;
@@ -43,6 +44,7 @@
         --surface: #172026;
         --surface-2: #1d272e;
         --border: #2c3a44;
+        --border-input: #64757f;
         --ink: #e6ecf0;
         --ink-2: #b4c0c9;
         --ink-3: #8d9aa5;
@@ -102,7 +104,7 @@ button, input, select { font: inherit; color: inherit; }
 }
 .marca { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 260px; }
 .marca svg { flex: none; }
-.marca h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -.01em; }
+.marca h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -.01em; }
 .marca .sub { font-size: .85rem; color: var(--ink-3); }
 .versao { font-size: .75rem; color: var(--ink-3); border: 1px solid var(--border); border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: middle; }
 .topo-acoes { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -119,6 +121,9 @@ button, input, select { font: inherit; color: inherit; }
     text-decoration: none; color: var(--ink);
 }
 .resumo-fixo .rf-valor { font-weight: 700; font-size: 1.15rem; }
+.resumo-fixo .rf-alvo { flex-basis: 100%; font-size: .9rem; font-weight: 600; color: var(--chart-alvo); }
+.resumo-fixo .rf-alvo.alvo-ja { color: var(--ok); }
+.resumo-fixo .rf-alvo.alvo-extrap, .resumo-fixo .rf-alvo.alvo-fora { color: var(--warn); }
 @media (min-width: 960px) { .resumo-fixo { display: none; } }
 
 /* ---------- Layout ---------- */
@@ -138,7 +143,7 @@ button, input, select { font: inherit; color: inherit; }
     padding: 16px; min-width: 0;
 }
 .passo-titulo { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.passo-titulo h2 { font-size: 1.05rem; font-weight: 650; }
+.passo-titulo h2 { font-size: 1.25rem; font-weight: 650; }
 .passo-n {
     width: 28px; height: 28px; border-radius: 50%; flex: none;
     display: inline-grid; place-items: center;
@@ -154,9 +159,10 @@ button, input, select { font: inherit; color: inherit; }
 .entrada { position: relative; display: flex; align-items: center; }
 .entrada input, select {
     width: 100%; min-height: 44px;
-    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    border: 1px solid var(--border-input); border-radius: var(--radius-sm);
     background: var(--surface-2); padding: 8px 12px;
 }
+::placeholder { color: var(--ink-3); opacity: 1; }
 .entrada input { padding-right: 52px; }
 .entrada .unid { position: absolute; right: 12px; color: var(--ink-3); font-size: .85rem; pointer-events: none; }
 input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--bad); background: var(--bad-soft); }
@@ -175,6 +181,11 @@ details.recolhivel > summary::-webkit-details-marker { display: none; }
 details.recolhivel > summary::before { content: "▸"; transition: transform .15s; }
 details.recolhivel[open] > summary::before { transform: rotate(90deg); }
 details.recolhivel > .conteudo { padding: 4px 12px 12px; }
+/* Impeccable (nested-cards): dentro de cartão o recolhível vira seção com divisória, não uma 2ª caixa */
+.cartao details.recolhivel { border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; }
+.cartao details.recolhivel > summary { padding-left: 0; padding-right: 0; }
+.cartao details.recolhivel > .conteudo { padding: 4px 0 6px; }
+.cartao > details.recolhivel:only-child { border-top: 0; margin: -6px 0; }
 
 /* ---------- Botões ---------- */
 .btn {
@@ -226,7 +237,7 @@ details.recolhivel > .conteudo { padding: 4px 12px 12px; }
 }
 .ensaio.invalida { border-color: var(--bad); background: var(--bad-soft); }
 .ensaio.excluido { border-style: dashed; border-color: var(--warn); }
-.ensaio .entrada input { min-height: 40px; background: var(--surface); }
+.ensaio .entrada input { min-height: 44px; background: var(--surface); }
 .ensaio .motivo { grid-column: 1 / -1; color: var(--bad); font-size: .82rem; padding: 0 4px 2px; }
 .ensaio .marca-exc { grid-column: 1 / -1; color: var(--warn); font-size: .82rem; padding: 0 4px 2px; }
 .lista-vazia { color: var(--ink-3); font-size: .9rem; padding: 8px 0; }
@@ -250,12 +261,12 @@ details.recolhivel > .conteudo { padding: 4px 12px 12px; }
 .toast .btn { min-height: 40px; background: transparent; color: var(--surface); border-color: rgba(255,255,255,.4); }
 
 /* ---------- Cartão de resultado ---------- */
-.resultado { border-top: 4px solid var(--accent); scroll-margin-top: 76px; }
+.resultado { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); scroll-margin-top: 76px; }   /* Impeccable: sem faixa grossa em canto arredondado */
 .res-topo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: space-between; margin-bottom: 8px; }
 .res-idade { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--ink-2); font-size: .95rem; }
 .res-idade .entrada { width: 110px; }
 .res-idade .entrada input { padding-right: 34px; }
-.res-rotulo { font-size: .95rem; color: var(--ink-2); font-weight: 600; display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+.res-rotulo { font-size: .95rem; color: var(--ink-2); font-weight: 600; display: flex; align-items: center; gap: 2px; }   /* sem wrap: o (i) fica junto do texto */
 .res-valor { font-size: clamp(2.2rem, 7vw, 3rem); font-weight: 750; letter-spacing: -.02em; color: var(--ink); line-height: 1.1; margin: 4px 0 8px; }
 .res-valor small { font-size: .45em; font-weight: 600; color: var(--ink-3); margin-left: 4px; }
 .selo {
@@ -281,6 +292,9 @@ details.recolhivel > .conteudo { padding: 4px 12px 12px; }
 .res-alvo .res-idade .entrada input { padding-right: 46px; }
 .alvo-resp { margin-top: 6px; font-size: .9rem; color: var(--ink-2); }
 .alvo-resp .alvo-dia { display: block; font-size: 1.35rem; font-weight: 750; color: var(--chart-alvo); letter-spacing: -.01em; }
+.alvo-resp.alvo-ja .alvo-dia { color: var(--ok); }
+.alvo-resp.alvo-extrap .alvo-dia, .alvo-resp.alvo-fora .alvo-dia { color: var(--warn); }
+.alvo-confirma { display: block; margin-top: 4px; font-weight: 600; color: var(--ink-2); }
 .res-alvo .msg { margin-top: 8px; }
 
 /* ---------- Gráfico ---------- */
@@ -320,4 +334,5 @@ dialog.modal::backdrop { background: rgba(10, 16, 20, .55); }
 .rel-veredito.indicativo { background: var(--warn-soft); color: var(--warn); }
 
 /* ---------- Rodapé ---------- */
+.rodape a { color: var(--accent); }
 .rodape { max-width: 1280px; margin: 0 auto; padding: 8px 16px 88px; color: var(--ink-3); font-size: .8rem; text-align: center; }
