@@ -4,12 +4,18 @@
  * Outras origens (desde o M4.4 o app não usa nenhuma): rede primeiro, cópia em cache como reserva. */
 importScripts('js/versao.js');   // versão única (A3-03): o cache muda a cada publicação
 const VERSAO_CACHE = `estimativa-fck-v${self.ESTIMATIVA_VERSAO}-${self.ESTIMATIVA_PUBLICACAO}`;
+// A3-18: os arquivos que o index.html carrega têm "?v=<publicação>" (mesmas URLs aqui); assim uma
+// index.html nova nunca recebe um app.js velho do cache de memória, do cache HTTP ou deste cache.
+const V = `?v=${self.ESTIMATIVA_PUBLICACAO}`;
+const VERSIONADOS = [
+    'css/app.css', 'js/versao.js', 'js/calc.js', 'js/app.js',
+    'vendor/chart.js-3.9.1/chart.min.js',
+    'vendor/chartjs-plugin-annotation-1.4.0/chartjs-plugin-annotation.min.js',
+    'vendor/jspdf-2.5.1/jspdf.umd.min.js'
+];
 const LOCAIS = [
-    './', './index.html', './css/app.css', './js/versao.js', './js/calc.js', './js/app.js',
-    './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png',
-    './vendor/chart.js-3.9.1/chart.min.js',
-    './vendor/chartjs-plugin-annotation-1.4.0/chartjs-plugin-annotation.min.js',
-    './vendor/jspdf-2.5.1/jspdf.umd.min.js'
+    './', './index.html', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png',
+    ...VERSIONADOS.map(u => './' + u + V)
 ];
 
 self.addEventListener('install', ev => {
@@ -34,7 +40,8 @@ self.addEventListener('fetch', ev => {
         // A3-13: procura só no cache deste app (a origem github.io é compartilhada com outros repositórios).
         // A3-03: revalidação com cache 'no-cache' (o navegador confere com o servidor, sem usar cópia HTTP velha).
         ev.respondWith(
-            caches.open(VERSAO_CACHE).then(c => c.match(req, { ignoreSearch: true })).then(hit => {
+            // URL exata (com a busca): ?v= diferente não pode casar com cópia de outra publicação (A3-18).
+            caches.open(VERSAO_CACHE).then(c => c.match(req)).then(hit => {
                 const daRede = fetch(req, { cache: 'no-cache' }).then(resp => {
                     if (resp.ok) { const copia = resp.clone(); caches.open(VERSAO_CACHE).then(c => c.put(req, copia)); }
                     return resp;

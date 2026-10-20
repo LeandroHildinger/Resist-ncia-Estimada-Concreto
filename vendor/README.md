@@ -21,7 +21,7 @@ O SRI bloqueia scripts abertos por `file://` (cada arquivo local é tratado como
 1. Baixar a versão exata da URL oficial acima (trocando a versão) para uma pasta nova `vendor/<pacote>-<versão>/`, com a licença.
 2. Conferir o SHA-256 com `data.jsdelivr.com` e calcular o SHA-384: `openssl dgst -sha384 -binary ARQUIVO | openssl base64 -A`.
 3. Atualizar `index.html`, a lista `LOCAIS` do `sw.js`, esta tabela e `tests/vendor.test.js`.
-4. Subir `ESTIMATIVA_PUBLICACAO` em `js/versao.js` (troca o cache do service worker).
+4. Subir `ESTIMATIVA_PUBLICACAO` em `js/versao.js` e o mesmo valor nos `?v=` do `index.html` (troca o cache do service worker e as URLs; `tests/publicacao.test.js` confere). Vale para qualquer publicação, não só troca de biblioteca.
 
 ## Chart.js 4.x?
 

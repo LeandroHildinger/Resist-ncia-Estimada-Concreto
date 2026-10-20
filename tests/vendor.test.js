@@ -24,7 +24,7 @@ test('index.html usa só as bibliotecas locais e o sw.js as guarda no cache', ()
     assert.doesNotMatch(html, /<script[^>]+src="https?:/);
     assert.doesNotMatch(html, /<link[^>]+href="https?:/);
     for (const arq of Object.keys(ESPERADO)) {
-        assert.ok(html.includes(`src="vendor/${arq}"`), arq);
-        assert.ok(sw.includes(`./vendor/${arq}`), arq);
+        assert.ok(html.includes(`src="vendor/${arq}?v=`), arq);   // ?v= da publicação (A3-18)
+        assert.ok(sw.includes(`'vendor/${arq}'`), arq);
     }
 });

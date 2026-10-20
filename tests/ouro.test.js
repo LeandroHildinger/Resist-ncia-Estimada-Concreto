@@ -36,7 +36,7 @@ test('referência congelada é idêntica ao núcleo ainda embutido no index.html
     if (atual === null) {
         // M3 em diante: o app usa js/calc.js e não pode ter cópia própria do núcleo.
         const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-        assert.match(html, /<script src="js\/calc\.js"><\/script>/);
+        assert.match(html, /<script src="js\/calc\.js(\?v=[^"]+)?"><\/script>/);
         assert.doesNotMatch(html, /const (Calculator|DataValidator|Beta) = \{/);
         return;
     }

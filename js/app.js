@@ -1031,7 +1031,8 @@
         iniciarGrafico();
         // PWA: service worker só em http/https (não em file://).
         if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-            navigator.serviceWorker.register('sw.js').catch(() => { /* sem offline; o app segue funcionando */ });
+            // A3-18: updateViaCache 'none': o navegador confere sw.js e js/versao.js sem o cache HTTP.
+            navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => { /* sem offline; o app segue funcionando */ });
         }
         const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
         if (mq && mq.addEventListener) mq.addEventListener('change', () => renderGrafico());
