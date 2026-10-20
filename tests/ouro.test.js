@@ -33,7 +33,13 @@ function comparar(a, b, caminho = '') {
 
 test('referência congelada é idêntica ao núcleo ainda embutido no index.html', (t) => {
     const atual = trechoIndexAtual();
-    if (atual === null) { t.skip('index.html já não embute o núcleo (M3 em diante)'); return; }
+    if (atual === null) {
+        // M3 em diante: o app usa js/calc.js e não pode ter cópia própria do núcleo.
+        const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+        assert.match(html, /<script src="js\/calc\.js"><\/script>/);
+        assert.doesNotMatch(html, /const (Calculator|DataValidator|Beta) = \{/);
+        return;
+    }
     const norm = s => s.replace(/\s+/g, ' ').trim();
     assert.equal(norm(atual), norm(trechoReferencia()));
 });

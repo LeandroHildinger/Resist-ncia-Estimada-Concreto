@@ -1,4 +1,23 @@
-# Mapa do app (estado em 2026-10-20, commit `6e0bdc9`)
+# Mapa do app
+
+## v2.0 (branch `modernizacao-2026-10`, M3)
+Arquivos: `index.html` (estrutura), `css/app.css` (estilo próprio, tokens claro/escuro, fonte do sistema; sem Tailwind e sem Google Fonts), `js/calc.js` (núcleo puro, `analyze`), `js/app.js` (interface: lê a tela, chama `analyze`, desenha). Bibliotecas ainda por CDN: Chart.js 3.9.1 + annotation 1.4.0, KaTeX 0.16.0, html2canvas 1.4.1, jsPDF 2.5.1 (vendorizar no M4).
+
+| Bloco | Conteúdo |
+|---|---|
+| Cabeçalho | "Estimativa fck" v2.0, Carregar exemplo (C45, CP V-ARI, sd 4,0, 3/7/14 d), Novo lote (com desfazer) |
+| Resumo fixo (celular < 960 px) | valor + selo + confiança, some sem resultado válido |
+| ① Concreto | fck, cimento, s personalizado (se "Outro"); Opções avançadas recolhidas: sd, modo, ignorar ensaio que destoa |
+| ② Ensaios | formulário Idade + Resistência (só adiciona valores válidos), lista editável com remover + Desfazer 5 s, linhas inválidas marcadas, Importar CSV com resumo lidas/ignoradas, modelo .csv |
+| ③ Resultado | idade (padrão 28 d), "Resistência estimada conservadora", selo (Atende / Não atende / Indicativo, ou pelo ensaio de 28 d), confiança, base, aviso de extrapolação > 28 d, validação sem o ensaio de 28 d |
+| Gráfico | norma (cinza tracejada), projeção conservadora, tendências (só se existirem), ensaios; trecho > 28 d esmaecido e tracejado, faixa "extrapolação: fora do escopo da NBR 6118"; linha 28 d só com ensaio real |
+| Atenção aos dados | uma caixa com todos os avisos (linhas inválidas, agregação, sd padrão, razões, monotonia, ignorados) |
+| Detalhes técnicos | recolhido: s, fcm alvo, fcm ajustado, desconto, idades, tendências, equações KaTeX (f_cm,ref; f_c,est; f_c,tend; f_c,livre) |
+| Relatório / PDF | relatório em `<dialog>` (Esc, clique fora, foco); PDF provisório com os rótulos novos (refazer no M4) |
+
+Estado salvo em `localStorage` (`estimativaFck.v2`, com try/catch). Debounce por campo; change/blur gravam na hora. Campos numéricos `type=text inputmode=decimal` aceitam vírgula.
+
+## v1 (commit `6e0bdc9`, histórico)
 
 Arquivo único `index.html` (1.286 linhas). Sem build. Dependências por CDN: Tailwind Play CDN, Chart.js 3.9.1 + annotation 1.4.0, KaTeX 0.16.0, html2canvas 1.4.1, jsPDF 2.5.1, fonte Inter.
 
