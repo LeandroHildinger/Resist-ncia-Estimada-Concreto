@@ -1,12 +1,15 @@
 /* Estimativa fck - service worker (M4).
  * Arquivos locais: cache primeiro com atualização em segundo plano (offline depois da 1ª visita;
  * uma versão nova publicada aparece na abertura seguinte).
- * Bibliotecas externas (CDN, até a vendorização): rede primeiro, cópia em cache como reserva. */
+ * Outras origens (desde o M4.4 o app não usa nenhuma): rede primeiro, cópia em cache como reserva. */
 importScripts('js/versao.js');   // versão única (A3-03): o cache muda a cada publicação
 const VERSAO_CACHE = `estimativa-fck-v${self.ESTIMATIVA_VERSAO}-${self.ESTIMATIVA_PUBLICACAO}`;
 const LOCAIS = [
     './', './index.html', './css/app.css', './js/versao.js', './js/calc.js', './js/app.js',
-    './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png'
+    './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png',
+    './vendor/chart.js-3.9.1/chart.min.js',
+    './vendor/chartjs-plugin-annotation-1.4.0/chartjs-plugin-annotation.min.js',
+    './vendor/jspdf-2.5.1/jspdf.umd.min.js'
 ];
 
 self.addEventListener('install', ev => {

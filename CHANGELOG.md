@@ -30,6 +30,8 @@ Modernização completa, baseada na auditoria técnica, de código e de usabilid
 - Caixa única "Atenção aos dados"; detalhes técnicos e equações recolhidos; relatório em janela acessível (Esc, clique fora, foco).
 - Gráfico mais legível: norma tracejada, projeção conservadora, tendências só quando existem, linha de 28 d apenas com ensaio real (C-06).
 - Sessão guardada no navegador (localStorage), tema claro e escuro, sem Tailwind e sem fontes externas.
+- Funciona offline: bibliotecas locais em `vendor/` (Chart.js 3.9.1, annotation 1.4.0, jsPDF 2.5.1, com SHA-384 conferido) e service worker (instalável como app). Abre também por duplo clique (`file://`) sem internet.
+- PDF refeito: texto nativo, identificação opcional do lote, resultado com selo e confiança, tabela dos CPs com status, avisos, gráfico, equações e nota de método e limite.
 - Novo `js/calc.js` (núcleo puro, testável no Node) e testes automatizados (`node --test`).
 
 ### Números

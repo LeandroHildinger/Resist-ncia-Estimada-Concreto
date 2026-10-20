@@ -10,10 +10,10 @@
     <meta name="theme-color" content="#0f4c5c">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="stylesheet" href="css/app.css">
-    <!-- Bibliotecas externas (vendorizar no M4) -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Bibliotecas locais (M4.4; origem, versão, SHA-384 e licença em vendor/README.md). Sem atributo integrity: o SRI bloqueia scripts abertos por file://; o SHA-384 é conferido em tests/vendor.test.js. -->
+    <script src="vendor/chart.js-3.9.1/chart.min.js"></script>
+    <script src="vendor/chartjs-plugin-annotation-1.4.0/chartjs-plugin-annotation.min.js"></script>
+    <script src="vendor/jspdf-2.5.1/jspdf.umd.min.js"></script>
     <!-- Núcleo de cálculo (puro) e interface -->
     <script src="js/versao.js"></script>
     <script src="js/calc.js"></script>

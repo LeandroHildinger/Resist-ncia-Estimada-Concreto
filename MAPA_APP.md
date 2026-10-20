@@ -1,7 +1,7 @@
 # Mapa do app
 
 ## v2.0 (branch `modernizacao-2026-10`, M3)
-Arquivos: `index.html` (estrutura), `css/app.css` (estilo próprio, tokens claro/escuro, fonte do sistema; sem Tailwind e sem Google Fonts), `js/calc.js` (núcleo puro, `analyze`), `js/app.js` (interface: lê a tela, chama `analyze`, desenha), `manifest.webmanifest` + `icons/` + `sw.js` (PWA, M4), `js/versao.js` (versão única: tela, PDF e nome do cache; **subir `ESTIMATIVA_PUBLICACAO` a cada publicação**). Bibliotecas ainda por CDN: Chart.js 3.9.1 + annotation 1.4.0 e jsPDF 2.5.1 (vendorizar no M4c, plano em `vendor/README.md`). KaTeX e html2canvas saíram no M4.
+Arquivos: `index.html` (estrutura), `css/app.css` (estilo próprio, tokens claro/escuro, fonte do sistema; sem Tailwind e sem Google Fonts), `js/calc.js` (núcleo puro, `analyze`), `js/app.js` (interface: lê a tela, chama `analyze`, desenha), `manifest.webmanifest` + `icons/` + `sw.js` (PWA, M4), `js/versao.js` (versão única: tela, PDF e nome do cache; **subir `ESTIMATIVA_PUBLICACAO` a cada publicação**). Bibliotecas locais em `vendor/` (M4.4): Chart.js 3.9.1, chartjs-plugin-annotation 1.4.0 e jsPDF 2.5.1, com origem, SHA-384 e licença em `vendor/README.md` (conferidos por `tests/vendor.test.js`). Nenhuma dependência externa: abre offline por http(s) (service worker) e por `file://`. KaTeX e html2canvas saíram no M4.
 
 | Bloco | Conteúdo |
 |---|---|
