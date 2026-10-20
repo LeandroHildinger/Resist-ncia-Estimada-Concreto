@@ -26,6 +26,7 @@
     --chart-tend: #2f8f6b;
     --chart-livre: #7a4fb5;
     --chart-fck: #b26b00;
+    --chart-alvo: #b4235a;
     --chart-grid: rgba(23, 33, 43, 0.08);
     --chart-extrap: rgba(23, 33, 43, 0.045);
     --radius: 12px;
@@ -62,6 +63,7 @@
         --chart-tend: #5fd0a4;
         --chart-livre: #b99be6;
         --chart-fck: #f2b450;
+        --chart-alvo: #f07aa0;
         --chart-grid: rgba(230, 236, 240, 0.09);
         --chart-extrap: rgba(230, 236, 240, 0.05);
         --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
@@ -273,6 +275,13 @@ details.recolhivel > .conteudo { padding: 4px 12px 12px; }
 .res-vazio { text-align: center; padding: 16px 8px; color: var(--ink-2); }
 .res-vazio p { margin-bottom: 12px; }
 .validacao { margin-top: 10px; border-radius: var(--radius-sm); padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--border); font-size: .9rem; }
+/* Pergunta inversa: em que dia chega à resistência-alvo */
+.res-alvo { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.res-alvo .res-idade .entrada { width: 120px; }
+.res-alvo .res-idade .entrada input { padding-right: 46px; }
+.alvo-resp { margin-top: 6px; font-size: .9rem; color: var(--ink-2); }
+.alvo-resp .alvo-dia { display: block; font-size: 1.35rem; font-weight: 750; color: var(--chart-alvo); letter-spacing: -.01em; }
+.res-alvo .msg { margin-top: 8px; }
 
 /* ---------- Gráfico ---------- */
 .grafico-caixa { position: relative; width: 100%; height: 440px; }

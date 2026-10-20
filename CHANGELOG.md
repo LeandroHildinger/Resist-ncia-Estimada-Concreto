@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.0 + pergunta inversa (2026-10-20, publicação 2026-10-20.4)
+
+- Novo campo opcional "Resistência-alvo" no passo ③: o app responde "≈ dia E", o primeiro dia inteiro em que a curva de projeção conservadora alcança o alvo (ex.: mínima para protender). Inversão fechada da mesma curva (`diaParaResistencia` em `js/calc.js`): t = 28 / [1 − ln((alvo + desconto)/fcm) / s]². Avisos: extrapolação (dia > 28), "Não atinge" (alvo acima do limite da curva), alvo já alcançado pela projeção até o último ensaio, confiança baixa.
+- Gráfico: linha horizontal tracejada do alvo, ponto de cruzamento e marca "≈ dia E". Relatório e PDF trazem a resposta; o alvo fica salvo no navegador.
+- Nenhum número existente muda (teste compara `analyze` com e sem alvo em todos os cenários ouro).
+
 ## v2.0 (2026-10-20)
 
 Modernização completa, baseada na auditoria técnica, de código e de usabilidade de 20/10/2026 (IDs entre parênteses referem-se aos pareceres em `03_auditoria/`).

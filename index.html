@@ -9,15 +9,15 @@
     <link rel="manifest" href="manifest.webmanifest">
     <meta name="theme-color" content="#0f4c5c">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="css/app.css?v=2026-10-20.3">
+    <link rel="stylesheet" href="css/app.css?v=2026-10-20.4">
     <!-- Bibliotecas locais (M4.4; origem, versão, SHA-384 e licença em vendor/README.md). Sem atributo integrity: o SRI bloqueia scripts abertos por file://; o SHA-384 é conferido em tests/vendor.test.js. -->
-    <script src="vendor/chart.js-3.9.1/chart.min.js?v=2026-10-20.3"></script>
-    <script src="vendor/chartjs-plugin-annotation-1.4.0/chartjs-plugin-annotation.min.js?v=2026-10-20.3"></script>
-    <script src="vendor/jspdf-2.5.1/jspdf.umd.min.js?v=2026-10-20.3"></script>
+    <script src="vendor/chart.js-3.9.1/chart.min.js?v=2026-10-20.4"></script>
+    <script src="vendor/chartjs-plugin-annotation-1.4.0/chartjs-plugin-annotation.min.js?v=2026-10-20.4"></script>
+    <script src="vendor/jspdf-2.5.1/jspdf.umd.min.js?v=2026-10-20.4"></script>
     <!-- Núcleo de cálculo (puro) e interface -->
-    <script src="js/versao.js?v=2026-10-20.3"></script>
-    <script src="js/calc.js?v=2026-10-20.3"></script>
-    <script src="js/app.js?v=2026-10-20.3" defer></script>
+    <script src="js/versao.js?v=2026-10-20.4"></script>
+    <script src="js/calc.js?v=2026-10-20.4"></script>
+    <script src="js/app.js?v=2026-10-20.4" defer></script>
 </head>
 <body>
 
@@ -185,6 +185,17 @@
                 <p class="res-base" id="resBase"></p>
                 <div class="msg msg-atencao" id="resExtrap" hidden>Idade acima de 28 d: extrapolação, fora do escopo da NBR 6118. O ganho depois dos 28 d depende de cura e umidade e não é garantido.</div>
                 <div class="validacao" id="resValidacao" hidden></div>
+                <div class="res-alvo">
+                    <div class="res-idade">
+                        <label for="alvo">Resistência-alvo (opcional)</label>
+                        <span class="ajuda"><button type="button" class="info" aria-expanded="false" aria-controls="ajAlvo" aria-label="Ajuda: resistência-alvo"><span>i</span></button>
+                            <div class="popover" id="ajAlvo" hidden><p>Pergunta inversa: <b>em que dia</b> a projeção conservadora chega a esta resistência? Ex.: mínima para protender, desformar, içar ou liberar carga.</p><p>Usa a mesma curva do resultado acima; o dia é arredondado para cima. Acima de 28 d é extrapolação (fora do escopo da NBR 6118).</p></div></span>
+                        <div class="entrada"><input id="alvo" type="text" inputmode="decimal" autocomplete="off" placeholder="ex.: 35" aria-describedby="alvoErro alvoResp"><span class="unid">MPa</span></div>
+                    </div>
+                    <span class="erro-campo" id="alvoErro"></span>
+                    <p class="alvo-resp" id="alvoResp" hidden></p>
+                    <div class="msg msg-atencao" id="alvoExtrap" hidden>Dia acima de 28 d: extrapolação, fora do escopo da NBR 6118. O ganho depois dos 28 d depende de cura e umidade e não é garantido.</div>
+                </div>
             </div>
         </section>
 

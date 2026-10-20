@@ -11,10 +11,10 @@
     const CHAVE = 'estimativaFck.v2';
     const VERSAO = self.ESTIMATIVA_VERSAO || '2.0';   // js/versao.js (A3-03)
 
-    const PADRAO = { fck: '', sd: '', cementType: '0.25', customS: '0,25', analysisMode: 'adjusted', autoDrop: false, rows: [], idadePrev: '28', exemplo: false,
+    const PADRAO = { fck: '', sd: '', cementType: '0.25', customS: '0,25', analysisMode: 'adjusted', autoDrop: false, rows: [], idadePrev: '28', alvo: '', exemplo: false,
         ident: { obra: '', elemento: '', lote: '', laboratorio: '', responsavel: '' } };
     const EXEMPLO = { fck: '45', sd: '4,0', cementType: '0.20', customS: '0,25', analysisMode: 'adjusted', autoDrop: false,
-        rows: [{ days: 3, mpa: 30 }, { days: 7, mpa: 38 }, { days: 14, mpa: 44 }], idadePrev: '28', exemplo: true,
+        rows: [{ days: 3, mpa: 30 }, { days: 7, mpa: 38 }, { days: 14, mpa: 44 }], idadePrev: '28', alvo: '', exemplo: true,
         ident: { obra: 'Exemplo', elemento: '', lote: 'C45 CP V-ARI', laboratorio: '', responsavel: '' } };
     const NOMES_CIMENTO = { '0.25': 'CP I / CP II', '0.38': 'CP III / CP IV', '0.20': 'CP V-ARI', custom: 's personalizado' };
 
@@ -57,7 +57,7 @@
             const novo = clonar(PADRAO);
             // A3-10: cada chave só é aceita com o tipo e os valores esperados; senão fica o padrão.
             const texto = v => typeof v === 'number' ? String(v).replace('.', ',') : (typeof v === 'string' ? v : null);
-            ['fck', 'sd', 'customS', 'idadePrev'].forEach(k => { const t = texto(o[k]); if (t !== null) novo[k] = t; });
+            ['fck', 'sd', 'customS', 'idadePrev', 'alvo'].forEach(k => { const t = texto(o[k]); if (t !== null) novo[k] = t; });
             if (['0.25', '0.38', '0.20', 'custom'].includes(String(o.cementType))) novo.cementType = String(o.cementType);
             else if (Number(o.cementType) === 0.2) novo.cementType = '0.20';
             if (['adjusted', 'normative'].includes(o.analysisMode)) novo.analysisMode = o.analysisMode;
@@ -101,7 +101,8 @@
             analysisMode: estado.analysisMode,
             autoDrop: !!estado.autoDrop,
             rows: estado.rows,
-            idadePrevisao: paramNum(estado.idadePrev)
+            idadePrevisao: paramNum(estado.idadePrev),
+            resistenciaAlvo: paramNum(estado.alvo)   // pergunta inversa (vazio = não pedido)
         };
     }
     function calcular() {
@@ -115,13 +116,15 @@
         { id: 'fck', chave: 'fck' },
         { id: 'sd', chave: 'sd' },
         { id: 'customS', chave: 'customS' },
-        { id: 'idadePrev', chave: 'idadePrev' }
+        { id: 'idadePrev', chave: 'idadePrev' },
+        { id: 'alvo', chave: 'alvo' }
     ];
     function preencherCampos() {
         $('fck').value = paraCampo(estado.fck);
         $('sd').value = paraCampo(estado.sd);
         $('customS').value = paraCampo(estado.customS);
         $('idadePrev').value = paraCampo(estado.idadePrev);
+        $('alvo').value = paraCampo(estado.alvo);
         $('cimento').value = estado.cementType;
         $('modo').value = estado.analysisMode;
         $('autoDrop').checked = !!estado.autoDrop;
@@ -387,11 +390,41 @@
             box.innerHTML = `<b>Comparação com o ensaio de 28 d (validação sem ele):</b> com os ensaios até ${fd(Math.max(...v.idadesUsadas))} d, a previsão aos 28 d seria <b class="num">${f1(v.previsto28)} MPa</b>; o ensaio deu <b class="num">${f1(v.real28)} MPa</b>. Diferença: <b class="num">${sinal(v.erroPct)}%</b> (${v.classificacao}).`;
         }
 
+        renderAlvo();
+
         // resumo fixo no celular
         $('rfValor').textContent = `${f1(prev.estimada)} MPa aos ${fd(prev.t)} d${prev.extrapolacao ? ' (extrapolação)' : ''}`;
         $('rfSelo').className = 'selo selo-' + r.selo.codigo;
         $('rfSelo').textContent = r.selo.texto;
         $('rfBase').textContent = `confiança ${r.confianca.rotulo}`;
+    }
+
+    // ------------------------------------------------------------------ pergunta inversa: dia da resistência-alvo
+    // Textos únicos para cartão, relatório e PDF. null quando o alvo não foi pedido ou é inválido.
+    function textoAlvo() {
+        const x = r && r.ok ? r.alvo : null;
+        if (!x || !x.valido) return null;
+        const R = `${f1(x.alvo)} MPa`;
+        if (x.naoAtinge) {
+            return { resposta: 'Não atinge', aviso: null,
+                detalhe: `A projeção conservadora não chega a ${R} em nenhuma idade: a curva tende a ${f1(x.assintota)} MPa.` };
+        }
+        let detalhe = `A projeção conservadora chega a ${R} aos ${fn(x.dia, 1)} d (dia arredondado para cima).`;
+        if (x.jaAtingido) detalhe += ` Pela projeção, o alvo já foi alcançado até o ensaio mais recente (${fd(x.maiorIdade)} d).`;
+        if (x.diaInteiro > 90) detalhe += ' Fora do gráfico (vai até 90 d).';
+        if (r.confianca.nivel === 'baixa') detalhe += ` Confiança ${r.confianca.rotulo}: use como indicação e confirme com novo ensaio.`;
+        return { resposta: `≈ dia ${x.diaInteiro.toLocaleString('pt-BR')}`, detalhe,
+            aviso: x.extrapolacao ? 'Dia acima de 28 d: extrapolação, fora do escopo da NBR 6118. O ganho depois dos 28 d depende de cura e umidade e não é garantido.' : null };
+    }
+    function renderAlvo() {
+        const x = r.alvo, t = textoAlvo();
+        const vazioAlvo = String(estado.alvo == null ? '' : estado.alvo).trim() === '';
+        const invalido = !vazioAlvo && x && !x.valido;
+        $('alvoErro').textContent = invalido ? 'Informe uma resistência maior que 0 (ex.: 35 ou 32,5).' : '';
+        if (invalido) $('alvo').setAttribute('aria-invalid', 'true'); else $('alvo').removeAttribute('aria-invalid');
+        $('alvoResp').hidden = !t;
+        $('alvoResp').innerHTML = t ? `<span class="alvo-dia num">${esc(t.resposta)}</span>${esc(t.detalhe)}` : '';
+        $('alvoExtrap').hidden = !(t && t.aviso);
     }
 
     // ------------------------------------------------------------------ atenção aos dados (U-13)
@@ -553,12 +586,14 @@
         return {
             ref: cssVar('--chart-ref'), proj: cssVar('--chart-proj'), tend: cssVar('--chart-tend'), livre: cssVar('--chart-livre'),
             ensaio: cssVar('--chart-ensaio'), fck: cssVar('--chart-fck'), grade: cssVar('--chart-grid'), texto: cssVar('--ink-2'),
-            superficie: cssVar('--surface'), extrap: cssVar('--chart-extrap'), aviso: cssVar('--warn-soft'), ink: cssVar('--ink')
+            superficie: cssVar('--surface'), extrap: cssVar('--chart-extrap'), aviso: cssVar('--warn-soft'), ink: cssVar('--ink'),
+            alvo: cssVar('--chart-alvo')
         };
     }
     // Paleta fixa do tema claro para o gráfico do PDF (independe do tema da tela).
     const CORES_PDF = { ref: '#8794a1', proj: '#0f4c5c', tend: '#2f8f6b', livre: '#7a4fb5', ensaio: '#17212b', fck: '#b26b00',
-        grade: 'rgba(23, 33, 43, 0.10)', texto: '#4a5866', superficie: '#ffffff', extrap: 'rgba(23, 33, 43, 0.05)', aviso: '#fff4dc', ink: '#17212b' };
+        grade: 'rgba(23, 33, 43, 0.10)', texto: '#4a5866', superficie: '#ffffff', extrap: 'rgba(23, 33, 43, 0.05)', aviso: '#fff4dc', ink: '#17212b',
+        alvo: '#b4235a' };
 
     function renderGrafico() {
         if (!grafico) return;
@@ -625,7 +660,22 @@
                     anot.real28 = { type: 'line', display: true, scaleID: 'x', value: 28, borderColor: comAlfa(cores.ensaio.startsWith('#') ? cores.ensaio : '#17212b', 0.35), borderWidth: 1.5, borderDash: [2, 3],
                         label: { enabled: true, content: `28 d real: ${f1(r.real28)} MPa`, position: 'start', backgroundColor: cores.superficie, color: cores.ink, font: { size: Math.round(11 * escala) } } };
                 }
-                const maxY = Math.max(r.params.fck, ...ds[4].data.map(p => p.y), ...ds[5].data.map(p => p.y), ...ds[1].data.map(p => p.y));
+                const x = r.alvo && r.alvo.valido ? r.alvo : null;
+                if (x) {   // pergunta inversa: linha do alvo e marca do cruzamento com a projeção conservadora
+                    // rótulo do alvo à direita ('start' cobriria a curva e os ensaios); no centro se colar no do fck
+                    anot.alvo = { type: 'line', display: true, yMin: x.alvo, yMax: x.alvo, borderColor: cores.alvo, borderWidth: 2, borderDash: [4, 4],
+                        drawTime: 'beforeDatasetsDraw',
+                        label: { enabled: true, content: `alvo ${f1(x.alvo)} MPa`, position: Math.abs(x.alvo - r.params.fck) < 4 ? 'center' : 'end', backgroundColor: cores.superficie, color: cores.alvo, font: { size: Math.round(11 * escala), weight: '600' } } };
+                    if (!x.naoAtinge && x.dia <= 90) {
+                        anot.alvoDia = { type: 'line', display: true, xMin: x.dia, xMax: x.dia, yMin: 0, yMax: x.alvo, borderColor: comAlfa(cores.alvo, 0.7), borderWidth: 1.5, borderDash: [2, 3],
+                            drawTime: 'beforeDatasetsDraw',
+                            label: { enabled: true, content: `≈ dia ${x.diaInteiro}`, position: 'start', yAdjust: x.dia >= 28 ? -36 * escala : 0,   // acima da etiqueta de extrapolação
+                                backgroundColor: cores.alvo, color: cores.superficie, font: { size: Math.round(11 * escala), weight: '700' } } };
+                        anot.alvoPonto = { type: 'point', display: true, xValue: x.dia, yValue: x.alvo, radius: 6 * escala, borderWidth: 2 * escala,
+                            backgroundColor: cores.superficie, borderColor: cores.alvo };
+                    }
+                }
+                const maxY = Math.max(r.params.fck, x ? x.alvo : 0, ...ds[4].data.map(p => p.y), ...ds[5].data.map(p => p.y), ...ds[1].data.map(p => p.y));
                 o.scales.y.suggestedMax = Math.ceil(maxY * 1.1 / 5) * 5;
             }
         }
@@ -677,6 +727,8 @@
         const v = r.validacao28;
 
         let h = `<div class="rel-veredito ${classe}">${veredito}</div>`;
+        const ta = textoAlvo();
+        if (ta) h += `<h4>Resistência-alvo</h4><ul><li><b>${esc(ta.resposta)}</b> para ${f1(r.alvo.alvo)} MPa. ${esc(ta.detalhe)}</li>${ta.aviso ? `<li>${esc(ta.aviso)}</li>` : ''}</ul>`;
         h += `<h4>Base da estimativa</h4><ul>
             <li>Confiança: ${esc(r.confianca.rotulo)}. ${esc(r.confianca.motivo)}</li>
             <li>${esc(descricaoBase())}</li>
@@ -741,7 +793,7 @@
         return String(t)
             .replace(/[−–—]/g, '-').replace(/≥/g, '>=').replace(/≤/g, '<=')
             .replace(/√/g, 'raiz').replace(/β/g, 'beta').replace(/Δ/g, 'Delta').replace(/…/g, '...')
-            .replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/✕/g, 'x')
+            .replace(/≈/g, '~').replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/✕/g, 'x')
             .replace(/[^\x00-\xff]/g, '?');
     }
     function horaLocal() {
@@ -816,6 +868,8 @@
         const linhasRes = [];
         linhasRes.push(['bold', 13, `Resistência estimada conservadora aos 28 d: ${f1(r.estimada28)} MPa`]);
         if (prev && prev.t !== 28) linhasRes.push(['normal', 10, `Aos ${fd(prev.t)} d: ${f1(prev.estimada)} MPa${prev.extrapolacao ? ' (extrapolação > 28 d, fora do escopo da NBR 6118)' : ''}`]);
+        const ta = textoAlvo();
+        if (ta) linhasRes.push(['bold', 10, `Resistência-alvo ${f1(r.alvo.alvo)} MPa: ${ta.resposta}${ta.aviso ? ' (extrapolação > 28 d, fora do escopo da NBR 6118)' : ''}`], ['normal', 9.5, ta.detalhe]);
         linhasRes.push(['bold', 11, `${r.selo.texto}${r.selo.base === 'estimativa' ? ` o fck de ${fd(p.fck)} MPa (${sinal(r.estimada28 - p.fck)} MPa aos 28 d)` : ''}`, true]);
         if (r.selo.base !== 'estimativa') linhasRes.push(['normal', 9.5, r.selo.motivo]);   // na estimativa o selo já traz o número
         linhasRes.push(['normal', 9.5, `Confiança: ${r.confianca.rotulo}. ${r.confianca.motivo}`]);

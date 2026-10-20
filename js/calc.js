@@ -386,6 +386,43 @@
         };
     }
 
+    /**
+     * Pergunta inversa (2026-10-20): em que dia a projeção conservadora atinge a resistência-alvo?
+     * Inverte f_proj(t) = fcm·e^(s·(1−√(28/t))) − offset (a mesma curva de preverEm; nenhum número muda):
+     *   t = 28 / (1 − ln((alvo + offset)/fcm)/s)²,  válido só se alvo < assíntota = fcm·e^s − offset.
+     * diaParaResistencia(analise, alvo, maiorIdade?) -> {
+     *   valido, motivo, alvo, dia (fração de dia; null se não atinge), diaInteiro (1º dia inteiro com
+     *   f_proj >= alvo: arredonda para cima, lado seguro), extrapolacao (dia > 28, D3), naoAtinge
+     *   (alvo >= assíntota), jaAtingido (alvo <= f_proj na maior idade ensaiada), assintota,
+     *   maiorIdade, projecaoMaiorIdade }
+     * alvo aceita texto com vírgula. maiorIdade é opcional (sem ela, jaAtingido = false).
+     */
+    function diaParaResistencia(analise, alvo, maiorIdade) {
+        const R = numParam(alvo);
+        if (!Number.isFinite(R) || R <= 0) {
+            return { valido: false, motivo: vazio(alvo) ? 'resistência-alvo não informada' : 'resistência-alvo deve ser um número maior que 0', alvo: R };
+        }
+        const fcm = analise && analise.fcm, s = analise && analise.s, offset = (analise && analise.offset) || 0;
+        if (!(fcm > 0) || !(s > 0)) return { valido: false, motivo: 'curva de projeção indisponível', alvo: R };
+        const assintota = fcm * Math.exp(s) - offset;
+        const temIdade = Number.isFinite(maiorIdade) && maiorIdade > 0;
+        const projecaoMaiorIdade = temIdade ? preverEm(analise, maiorIdade).estimada : null;
+        const base = { valido: true, motivo: null, alvo: R, assintota, maiorIdade: temIdade ? maiorIdade : null, projecaoMaiorIdade };
+        if (R >= assintota) {
+            return { ...base, dia: null, diaInteiro: null, extrapolacao: false, naoAtinge: true, jaAtingido: false };
+        }
+        const denom = 1 - Math.log((R + offset) / fcm) / s;    // > 0 porque R + offset < fcm·e^s
+        const dia = 28 / (denom * denom);
+        // Tolerância relativa de 1e-9: ruído de ponto flutuante não empurra o alvo para o dia seguinte
+        // (ex.: alvo igual ao CP de 3 d com 1 ensaio dá 3,0000000000001 d e f_proj(3) = alvo − 4e-15).
+        const tol = 1e-9 * Math.max(1, R);
+        let diaInteiro = Math.max(1, Math.ceil(dia - 1e-9));
+        // Garantia: no dia inteiro informado a projeção já alcança o alvo.
+        if (preverEm(analise, diaInteiro).estimada < R - tol) diaInteiro += 1;
+        return { ...base, dia, diaInteiro, extrapolacao: dia > 28 + 1e-9, naoAtinge: false,
+            jaAtingido: temIdade && R <= projecaoMaiorIdade + tol };
+    }
+
     // D2: confiança pelo número de idades distintas e pela maior idade ensaiada.
     // M4.3 (A3-16, decisão do Leandro): inconsistência nos pontos usados no ajuste
     // (queda com a idade ou razão fora da faixa) rebaixa a confiança 1 nível.
@@ -472,7 +509,8 @@
      * analyze(input) -> resultado completo para a UI.
      * input: { fck, sd, cementType ('0.25'|'0.38'|'0.20'|'custom'), customS, analysisMode ('adjusted'|'normative'),
      *          autoDrop (bool), rows: [{days, mpa}] (CPs brutos, podem ter vazios), idadePrevisao (opcional),
-     *          idades (opcional, padrão [3,7,14,28,63]) }
+     *          idades (opcional, padrão [3,7,14,28,63]), resistenciaAlvo (opcional: preenche r.alvo
+     *          com diaParaResistencia; vazio -> r.alvo = null) }
      * Com erro de parâmetro: { ok:false, erros, linhas } e nenhum resultado (C-02, C-03).
      */
     function analyze(input) {
@@ -508,6 +546,9 @@
         const p28 = pontos.find(p => p.days === 28);
         const real28 = p28 ? p28.mpa : null;
         const confianca = avaliarConfianca(aj.usados, params.s_normative);
+        // Pergunta inversa: só quando a entrada traz resistenciaAlvo (vazio = não pedido).
+        const alvo = vazio(input.resistenciaAlvo) ? null
+            : diaParaResistencia(analise, input.resistenciaAlvo, pontos.length ? pontos[pontos.length - 1].days : undefined);
 
         return {
             ok: true, erros: [], params, linhas, pontos,
@@ -518,6 +559,7 @@
             real28, comparacaoS: compararS(analise.s, params.s_normative),
             confianca, selo: avaliarSelo(params.fck, estimada28, real28, confianca, p28 ? p28.n : 0),
             validacao28: validar28(pontos, params, real28),
+            alvo,
             mensagens: { regraReferencia: analise.ruleApplied ? MSG_REGRA_REFERENCIA : null }
         };
     }
@@ -574,7 +616,7 @@
 
     return {
         Beta, DataValidator, Calculator,
-        analyze, parseCsv, validarLinha, agregarPorIdade, mediana, paraNumero, preverEm, compararS,
+        analyze, parseCsv, validarLinha, agregarPorIdade, mediana, paraNumero, preverEm, compararS, diaParaResistencia,
         IDADES_PADRAO, SD_PADRAO, CIMENTOS, MSG_REGRA_REFERENCIA
     };
 }));

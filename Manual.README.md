@@ -42,6 +42,13 @@ A tela segue a ordem dos passos. O botão "Carregar exemplo" preenche um caso co
 
 **Aviso de extrapolação.** O trecho acima de 28 dias é desenhado esmaecido e tracejado, com a etiqueta "extrapolação: fora do escopo da NBR 6118". Resultados nessas idades são projeções, não previsões respaldadas pela norma.
 
+**Resistência-alvo: em que dia chego a R MPa? (opcional).** Abaixo do resultado há o campo "Resistência-alvo". Informe uma resistência (aceita vírgula, ex.: 32,5) e o app responde **"≈ dia E"**: o primeiro dia inteiro em que a curva de projeção conservadora alcança o alvo (o dia é arredondado para cima, a favor da segurança; o texto mostra também o valor com uma casa, ex.: 8,9 d). Serve para a pergunta de obra: mínima para protender, desformar, içar ou liberar carga. É a mesma curva do resultado, só lida ao contrário; nenhum outro número muda. No gráfico aparecem a linha horizontal tracejada do alvo, o ponto de cruzamento com a projeção e a marca "≈ dia E".
+- Se o dia passar de 28, aparece o aviso de extrapolação (fora do escopo da NBR 6118).
+- Se o alvo estiver acima do limite da curva (fcm · e^s − desconto), a resposta é "Não atinge", com o limite em MPa.
+- Se a projeção na maior idade ensaiada já passa do alvo, o texto avisa que o alvo já foi alcançado até esse ensaio.
+- Com confiança baixa (ex.: só o CP de 3 dias), o texto lembra que é só indicação e pede novo ensaio.
+- O alvo é guardado no navegador e sai no relatório e no PDF.
+
 **Atenção aos dados.** Uma caixa reúne todos os avisos: linhas inválidas, CPs agregados pela mediana, sd padrão assumido, resistência que cai com a idade, razões entre idades fora da faixa esperada, ensaios ignorados e uso da curva de referência da norma.
 
 ## 4. Importar CSV
@@ -67,6 +74,7 @@ A tela segue a ordem dos passos. O botão "Carregar exemplo" preenche um caso co
 - **Curva de projeção conservadora** = curva média ajustada menos o maior desvio de um ponto de ensaio abaixo dessa curva. Resulta numa curva que passa em ou abaixo de todos os ensaios. Isso NÃO é o fck estatístico de 5% da NBR 12655: não há análise estatística de população, e com poucos CPs isso seria impossível de sustentar.
 - **Curva da norma** (cinza tracejada): fcm alvo · β1(t, s do cimento), sem usar ensaios. Se a curva da norma já fica abaixo de todos os ensaios e ajusta melhor que a regressão limitada ao teto, ela é adotada, com aviso.
 - **Acima de 28 dias** a projeção é extrapolação, fora do escopo da NBR 6118.
+- **Dia para a resistência-alvo** (pergunta inversa): inverte a curva de projeção conservadora f_proj(t) = fcm · exp{s · [1 − (28/t)^½]} − desconto. Solução fechada: t = 28 / [1 − ln((alvo + desconto)/fcm) / s]². Só existe se alvo < fcm · e^s − desconto (o limite da curva quando t cresce); acima disso o app diz "Não atinge". O dia exibido é o primeiro inteiro com f_proj ≥ alvo.
 
 ## 7. Limites de uso
 
