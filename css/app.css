@@ -123,7 +123,7 @@ button, input, select { font: inherit; color: inherit; }
 .resumo-fixo .rf-valor { font-weight: 700; font-size: 1.15rem; }
 .resumo-fixo .rf-alvo { flex-basis: 100%; font-size: .9rem; font-weight: 600; color: var(--chart-alvo); }
 .resumo-fixo .rf-alvo.alvo-ja { color: var(--ok); }
-.resumo-fixo .rf-alvo.alvo-extrap, .resumo-fixo .rf-alvo.alvo-fora { color: var(--warn); }
+.resumo-fixo .rf-alvo.alvo-extrap, .resumo-fixo .rf-alvo.alvo-ja-extrap, .resumo-fixo .rf-alvo.alvo-fora { color: var(--warn); }
 @media (min-width: 960px) { .resumo-fixo { display: none; } }
 
 /* ---------- Layout ---------- */
@@ -261,7 +261,7 @@ details.recolhivel > .conteudo { padding: 4px 12px 12px; }
 .toast .btn { min-height: 40px; background: transparent; color: var(--surface); border-color: rgba(255,255,255,.4); }
 
 /* ---------- Cartão de resultado ---------- */
-.resultado { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); scroll-margin-top: 76px; }   /* Impeccable: sem faixa grossa em canto arredondado */
+.resultado { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); scroll-margin-top: 124px; }   /* resumo fixo com alvo ~110 px. Impeccable: sem faixa grossa em canto arredondado */
 .res-topo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: space-between; margin-bottom: 8px; }
 .res-idade { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--ink-2); font-size: .95rem; }
 .res-idade .entrada { width: 110px; }
@@ -293,7 +293,7 @@ details.recolhivel > .conteudo { padding: 4px 12px 12px; }
 .alvo-resp { margin-top: 6px; font-size: .9rem; color: var(--ink-2); }
 .alvo-resp .alvo-dia { display: block; font-size: 1.35rem; font-weight: 750; color: var(--chart-alvo); letter-spacing: -.01em; }
 .alvo-resp.alvo-ja .alvo-dia { color: var(--ok); }
-.alvo-resp.alvo-extrap .alvo-dia, .alvo-resp.alvo-fora .alvo-dia { color: var(--warn); }
+.alvo-resp.alvo-extrap .alvo-dia, .alvo-resp.alvo-ja-extrap .alvo-dia, .alvo-resp.alvo-fora .alvo-dia { color: var(--warn); }
 .alvo-confirma { display: block; margin-top: 4px; font-weight: 600; color: var(--ink-2); }
 .res-alvo .msg { margin-top: 8px; }
 

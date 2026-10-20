@@ -355,6 +355,7 @@
             }
             $('resValor').textContent = '--'; $('resSelo').textContent = ''; $('resMotivo').textContent = '';   // C-02: nada de resultado velho
             $('resValidacao').hidden = true; $('resExtrap').hidden = true;
+            silenciarAnuncio();
             return;
         }
         erro.hidden = true;
@@ -363,6 +364,7 @@
             $('resVazioTexto').textContent = estado.rows.length
                 ? 'Nenhum ensaio válido: corrija as linhas marcadas em vermelho.'
                 : 'Adicione o 1º ensaio para ver a estimativa.';
+            silenciarAnuncio();
             return;
         }
         vazio.hidden = true; cont.hidden = false;
@@ -414,6 +416,8 @@
         clearTimeout(anuncioTimer);
         anuncioTimer = setTimeout(() => { if (texto !== ultimoAnuncio) { ultimoAnuncio = texto; $('anuncio').textContent = texto; } }, 1200);
     }
+    // Sem resultado (erro ou sem ensaios): cancela o anúncio pendente; a volta ao mesmo resultado é anunciada de novo.
+    function silenciarAnuncio() { clearTimeout(anuncioTimer); ultimoAnuncio = ''; $('anuncio').textContent = ''; }
 
     // ------------------------------------------------------------------ pergunta inversa: dia da resistência-alvo
     // Textos únicos para cartão, relatório e PDF. null quando o alvo não foi pedido ou é inválido.
@@ -433,10 +437,11 @@
         if (r.confianca.nivel === 'baixa') detalhe += ` Confiança ${r.confianca.rotulo}: use como indicação e confirme com novo ensaio.`;
         // D9 (Leandro, 20/10): a manchete diz o caso; o lembrete do rompimento fica visível na resposta.
         const dia = x.diaInteiro.toLocaleString('pt-BR');
-        const caso = x.jaAtingido ? 'ja' : x.extrapolacao ? 'extrap' : 'escopo';
-        const resposta = caso === 'ja' ? `Já alcançado · dia ${dia}` : caso === 'extrap' ? `Dia ${dia} · extrapolação` : `Dia ${dia}`;
+        const caso = x.jaAtingido ? (x.extrapolacao ? 'ja-extrap' : 'ja') : x.extrapolacao ? 'extrap' : 'escopo';
+        const resposta = { ja: `Já alcançado · dia ${dia}`, 'ja-extrap': `Já alcançado · dia ${dia} · extrapolação`,
+            extrap: `Dia ${dia} · extrapolação`, escopo: `Dia ${dia}` }[caso];
         return { resposta, caso, detalhe,
-            confirma: caso === 'ja' ? `Confira o ensaio de ${fd(x.maiorIdade)} d: o resultado medido vale mais que a projeção.` : 'Confirme rompendo o CP nessa data antes de liberar.',
+            confirma: x.jaAtingido ? `Confira o ensaio de ${fd(x.maiorIdade)} d: o resultado medido vale mais que a projeção.` : 'Confirme rompendo o CP nessa data antes de liberar.',
             aviso: x.extrapolacao ? AVISO_EXTRAP : null };
     }
     function renderAlvo() {
@@ -895,7 +900,7 @@
         linhasRes.push(['bold', 13, `Resistência estimada conservadora aos 28 d: ${f1(r.estimada28)} MPa`]);
         if (prev && prev.t !== 28) linhasRes.push(['normal', 10, `Aos ${fd(prev.t)} d: ${f1(prev.estimada)} MPa${prev.extrapolacao ? ' (extrapolação > 28 d, fora do escopo da NBR 6118)' : ''}`]);
         const ta = textoAlvo();
-        if (ta) linhasRes.push(['bold', 10, `Resistência-alvo ${f1(r.alvo.alvo)} MPa: ${ta.resposta}${ta.aviso && ta.caso !== 'extrap' ? ' (extrapolação > 28 d, fora do escopo da NBR 6118)' : ta.aviso ? ' (> 28 d, fora do escopo da NBR 6118)' : ''}`], ['normal', 9.5, ta.detalhe + (ta.confirma ? ' ' + ta.confirma : '')]);
+        if (ta) linhasRes.push(['bold', 10, `Resistência-alvo ${f1(r.alvo.alvo)} MPa: ${ta.resposta}${ta.aviso && !/extrap/.test(ta.caso) ? ' (extrapolação > 28 d, fora do escopo da NBR 6118)' : ta.aviso ? ' (> 28 d, fora do escopo da NBR 6118)' : ''}`], ['normal', 9.5, ta.detalhe + (ta.confirma ? ' ' + ta.confirma : '')]);
         linhasRes.push(['bold', 11, `${r.selo.texto}${r.selo.base === 'estimativa' ? ` o fck de ${fd(p.fck)} MPa (${sinal(r.estimada28 - p.fck)} MPa aos 28 d)` : ''}`, true]);
         if (r.selo.base !== 'estimativa') linhasRes.push(['normal', 9.5, r.selo.motivo]);   // na estimativa o selo já traz o número
         linhasRes.push(['normal', 9.5, `Confiança: ${r.confianca.rotulo}. ${r.confianca.motivo}`]);
@@ -1072,7 +1077,8 @@
             $('fck').focus();
         });
         ['pointerenter', 'focusin'].forEach(ev => $('toast').addEventListener(ev, () => clearTimeout(toastTimer)));
-        ['pointerleave', 'focusout'].forEach(ev => $('toast').addEventListener(ev, () => { if (!$('toast').hidden) armarToast(); }));
+        $('toast').addEventListener('pointerleave', () => { if (!$('toast').hidden && !$('toast').contains(document.activeElement)) armarToast(); });
+        $('toast').addEventListener('focusout', e => { if (!$('toast').hidden && !$('toast').contains(e.relatedTarget) && !$('toast').matches(':hover')) armarToast(); });
         $('toastDesfazer').addEventListener('click', () => {
             const f = toastDesfazer;
             $('toast').hidden = true; toastDesfazer = null; clearTimeout(toastTimer);
