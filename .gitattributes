@@ -1,0 +1,3 @@
+# Bibliotecas de terceiros: bytes exatos (o SHA-384 de vendor/README.md não pode mudar com conversão de fim de linha)
+vendor/** -text
+*.png binary
