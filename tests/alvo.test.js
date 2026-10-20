@@ -92,6 +92,17 @@ test('ruído de ponto flutuante: alvo igual ao único CP de 3 d -> dia 3, já at
     assert.equal(x.extrapolacao, false, 'alvo = estimada aos 28 d não é extrapolação');
 });
 
+test('maior idade = maior idade USADA no ajuste (idade ignorada pelo autoDrop fica fora)', () => {
+    const rows = [{ days: 3, mpa: 30 }, { days: 7, mpa: 38 }, { days: 14, mpa: 52 }];
+    const r = analyze({ ...C45, rows, autoDrop: true, resistenciaAlvo: 37 });
+    assert.deepEqual(r.excluidos, [14]);
+    assert.equal(r.alvo.maiorIdade, 7);
+    perto(r.alvo.projecaoMaiorIdade, preverEm(r.analise, 7).estimada, 'projeção aos 7 d');
+    assert.equal(r.alvo.jaAtingido, true);
+    // garantia: com jaAtingido, o ensaio usado nessa idade também alcança o alvo
+    assert.ok(r.pontosUsados.find(p => p.days === r.alvo.maiorIdade).mpa >= r.alvo.alvo);
+});
+
 test('alvo inválido: zero, negativo, texto -> valido false; vírgula aceita', () => {
     const a = analyze(C45).analise;
     for (const alvo of [0, -5, 'abc', '45abc', NaN]) {

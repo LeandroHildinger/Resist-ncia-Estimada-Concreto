@@ -409,8 +409,9 @@
             return { resposta: 'Não atinge', aviso: null,
                 detalhe: `A projeção conservadora não chega a ${R} em nenhuma idade: a curva tende a ${f1(x.assintota)} MPa.` };
         }
-        let detalhe = `A projeção conservadora chega a ${R} aos ${fn(x.dia, 1)} d (dia arredondado para cima).`;
-        if (x.jaAtingido) detalhe += ` Pela projeção, o alvo já foi alcançado até o ensaio mais recente (${fd(x.maiorIdade)} d).`;
+        const diaFrac = Math.ceil(x.dia * 10 - 1e-6) / 10;   // 1 casa, para cima: 9,03 d -> 9,1 d (coerente com "dia 10")
+        let detalhe = `A projeção conservadora chega a ${R} com ${fn(diaFrac, 1)} d (dia arredondado para cima).`;
+        if (x.jaAtingido) detalhe += ` Pela projeção, o alvo já foi alcançado até o ensaio mais recente usado no ajuste (${fd(x.maiorIdade)} d).`;
         if (x.diaInteiro > 90) detalhe += ' Fora do gráfico (vai até 90 d).';
         if (r.confianca.nivel === 'baixa') detalhe += ` Confiança ${r.confianca.rotulo}: use como indicação e confirme com novo ensaio.`;
         return { resposta: `≈ dia ${x.diaInteiro.toLocaleString('pt-BR')}`, detalhe,
@@ -675,7 +676,8 @@
                             backgroundColor: cores.superficie, borderColor: cores.alvo };
                     }
                 }
-                const maxY = Math.max(r.params.fck, x ? x.alvo : 0, ...ds[4].data.map(p => p.y), ...ds[5].data.map(p => p.y), ...ds[1].data.map(p => p.y));
+                const maxY = Math.max(r.params.fck, x && !x.naoAtinge ? x.alvo : 0, ...   // alvo inatingível não achata as curvas
+                    ds[4].data.map(p => p.y), ...ds[5].data.map(p => p.y), ...ds[1].data.map(p => p.y));
                 o.scales.y.suggestedMax = Math.ceil(maxY * 1.1 / 5) * 5;
             }
         }

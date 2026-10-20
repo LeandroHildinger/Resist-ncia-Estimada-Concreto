@@ -63,10 +63,10 @@ Arquivo UMD sem build: `window.EstimativaCalc` no navegador, `require('./js/calc
 | `analyze(input)` | Pipeline completo que substitui a lógica de `App.update`, previsão, Δ28 e diagnóstico |
 | `parseCsv(text)` | Leitura de CSV (`;` + vírgula decimal, tab, `,`, aspas, BOM; cabeçalho só se não numérico); devolve linhas brutas e ignoradas |
 | `validarLinha`, `agregarPorIdade`, `mediana`, `paraNumero`, `preverEm`, `compararS` | Auxiliares puros |
-| `diaParaResistencia(analise, alvo, maiorIdade?)` | Pergunta inversa (20/10): inverte f_proj(t) = fcm·e^(s(1−√(28/t))) − offset em forma fechada, t = 28/(1 − ln((alvo+offset)/fcm)/s)². Devolve `{ valido, motivo, alvo, dia, diaInteiro (1º inteiro com f_proj ≥ alvo), extrapolacao (dia > 28), naoAtinge (alvo ≥ fcm·e^s − offset), jaAtingido (alvo ≤ f_proj na maior idade ensaiada), assintota, maiorIdade, projecaoMaiorIdade }`. Tolerância relativa 1e-9 contra ruído de ponto flutuante |
+| `diaParaResistencia(analise, alvo, maiorIdade?)` | Pergunta inversa (20/10): inverte f_proj(t) = fcm·e^(s(1−√(28/t))) − offset em forma fechada, t = 28/(1 − ln((alvo+offset)/fcm)/s)². Devolve `{ valido, motivo, alvo, dia, diaInteiro (1º inteiro com f_proj ≥ alvo), extrapolacao (dia > 28), naoAtinge (alvo ≥ fcm·e^s − offset), jaAtingido (alvo ≤ f_proj na maior idade usada no ajuste), assintota, maiorIdade, projecaoMaiorIdade }`. Tolerância relativa 1e-9 contra ruído de ponto flutuante |
 
 ### `analyze(input)`
-Entrada: `{ fck, sd, cementType ('0.25'|'0.38'|'0.20'|'custom'), customS, analysisMode ('adjusted'|'normative'), autoDrop, rows:[{days, mpa}], idadePrevisao?, idades?, resistenciaAlvo? }`. Com `resistenciaAlvo` preenchido, a saída traz `alvo` = `diaParaResistencia(analise, resistenciaAlvo, maior idade válida)`; vazio ou ausente → `alvo: null`. Nenhum outro campo muda. `rows` são os CPs brutos (podem ter vazios e idades repetidas).
+Entrada: `{ fck, sd, cementType ('0.25'|'0.38'|'0.20'|'custom'), customS, analysisMode ('adjusted'|'normative'), autoDrop, rows:[{days, mpa}], idadePrevisao?, idades?, resistenciaAlvo? }`. Com `resistenciaAlvo` preenchido, a saída traz `alvo` = `diaParaResistencia(analise, resistenciaAlvo, maior idade usada no ajuste; idade ignorada pelo autoDrop fica fora)`; vazio ou ausente → `alvo: null`. Nenhum outro campo muda. `rows` são os CPs brutos (podem ter vazios e idades repetidas).
 
 Com erro de parâmetro: `{ ok:false, erros:[...], linhas }`, sem nenhum resultado (a UI limpa gráfico, relatório e PDF).
 

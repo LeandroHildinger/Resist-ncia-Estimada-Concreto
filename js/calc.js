@@ -393,7 +393,7 @@
      * diaParaResistencia(analise, alvo, maiorIdade?) -> {
      *   valido, motivo, alvo, dia (fração de dia; null se não atinge), diaInteiro (1º dia inteiro com
      *   f_proj >= alvo: arredonda para cima, lado seguro), extrapolacao (dia > 28, D3), naoAtinge
-     *   (alvo >= assíntota), jaAtingido (alvo <= f_proj na maior idade ensaiada), assintota,
+     *   (alvo >= assíntota), jaAtingido (alvo <= f_proj em maiorIdade; analyze passa a maior idade usada no ajuste), assintota,
      *   maiorIdade, projecaoMaiorIdade }
      * alvo aceita texto com vírgula. maiorIdade é opcional (sem ela, jaAtingido = false).
      */
@@ -547,8 +547,11 @@
         const real28 = p28 ? p28.mpa : null;
         const confianca = avaliarConfianca(aj.usados, params.s_normative);
         // Pergunta inversa: só quando a entrada traz resistenciaAlvo (vazio = não pedido).
+        // Maior idade USADA no ajuste: a projeção fica sobre ou abaixo de todos os pontos usados, então
+        // jaAtingido implica que o ensaio dessa idade também chegou ao alvo (idade ignorada pelo autoDrop fica fora).
+        const maiorUsada = aj.usados.length ? Math.max(...aj.usados.map(p => p.days)) : undefined;
         const alvo = vazio(input.resistenciaAlvo) ? null
-            : diaParaResistencia(analise, input.resistenciaAlvo, pontos.length ? pontos[pontos.length - 1].days : undefined);
+            : diaParaResistencia(analise, input.resistenciaAlvo, maiorUsada);
 
         return {
             ok: true, erros: [], params, linhas, pontos,

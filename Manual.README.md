@@ -45,7 +45,7 @@ A tela segue a ordem dos passos. O botão "Carregar exemplo" preenche um caso co
 **Resistência-alvo: em que dia chego a R MPa? (opcional).** Abaixo do resultado há o campo "Resistência-alvo". Informe uma resistência (aceita vírgula, ex.: 32,5) e o app responde **"≈ dia E"**: o primeiro dia inteiro em que a curva de projeção conservadora alcança o alvo (o dia é arredondado para cima, a favor da segurança; o texto mostra também o valor com uma casa, ex.: 8,9 d). Serve para a pergunta de obra: mínima para protender, desformar, içar ou liberar carga. É a mesma curva do resultado, só lida ao contrário; nenhum outro número muda. No gráfico aparecem a linha horizontal tracejada do alvo, o ponto de cruzamento com a projeção e a marca "≈ dia E".
 - Se o dia passar de 28, aparece o aviso de extrapolação (fora do escopo da NBR 6118).
 - Se o alvo estiver acima do limite da curva (fcm · e^s − desconto), a resposta é "Não atinge", com o limite em MPa.
-- Se a projeção na maior idade ensaiada já passa do alvo, o texto avisa que o alvo já foi alcançado até esse ensaio.
+- Se a projeção na maior idade usada no ajuste já passa do alvo, o texto avisa que o alvo já foi alcançado até esse ensaio (a projeção fica sobre ou abaixo dos ensaios usados, então o CP dessa idade também chegou lá). O dia é só para planejar: a liberação continua dependendo do rompimento do CP na data.
 - Com confiança baixa (ex.: só o CP de 3 dias), o texto lembra que é só indicação e pede novo ensaio.
 - O alvo é guardado no navegador e sai no relatório e no PDF.
 
