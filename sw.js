@@ -2,14 +2,16 @@
  * Arquivos locais: cache primeiro com atualização em segundo plano (offline depois da 1ª visita;
  * uma versão nova publicada aparece na abertura seguinte).
  * Bibliotecas externas (CDN, até a vendorização): rede primeiro, cópia em cache como reserva. */
-const VERSAO_CACHE = 'estimativa-fck-v2.0';
+importScripts('js/versao.js');   // versão única (A3-03): o cache muda a cada publicação
+const VERSAO_CACHE = `estimativa-fck-v${self.ESTIMATIVA_VERSAO}-${self.ESTIMATIVA_PUBLICACAO}`;
 const LOCAIS = [
-    './', './index.html', './css/app.css', './js/calc.js', './js/app.js',
+    './', './index.html', './css/app.css', './js/versao.js', './js/calc.js', './js/app.js',
     './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png'
 ];
 
 self.addEventListener('install', ev => {
-    ev.waitUntil(caches.open(VERSAO_CACHE).then(c => c.addAll(LOCAIS)).then(() => self.skipWaiting()));
+    // cache: 'reload' ignora o cache HTTP do navegador na instalação (A3-03)
+    ev.waitUntil(caches.open(VERSAO_CACHE).then(c => c.addAll(LOCAIS.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', ev => {
@@ -26,9 +28,11 @@ self.addEventListener('fetch', ev => {
     const url = new URL(req.url);
     if (url.origin === self.location.origin) {
         // Cache primeiro; em paralelo busca a versão nova e atualiza o cache (vale na próxima abertura).
+        // A3-13: procura só no cache deste app (a origem github.io é compartilhada com outros repositórios).
+        // A3-03: revalidação com cache 'no-cache' (o navegador confere com o servidor, sem usar cópia HTTP velha).
         ev.respondWith(
-            caches.match(req, { ignoreSearch: true }).then(hit => {
-                const daRede = fetch(req).then(resp => {
+            caches.open(VERSAO_CACHE).then(c => c.match(req, { ignoreSearch: true })).then(hit => {
+                const daRede = fetch(req, { cache: 'no-cache' }).then(resp => {
                     if (resp.ok) { const copia = resp.clone(); caches.open(VERSAO_CACHE).then(c => c.put(req, copia)); }
                     return resp;
                 }).catch(() => hit);
@@ -36,11 +40,18 @@ self.addEventListener('fetch', ev => {
             })
         );
     } else {
-        ev.respondWith(
-            fetch(req).then(resp => {
-                if (resp.ok || resp.type === 'opaque') { const copia = resp.clone(); caches.open(VERSAO_CACHE).then(c => c.put(req, copia)); }
-                return resp;
-            }).catch(() => caches.match(req))
-        );
+        // CDN: rede primeiro, com limite de 3 s antes de usar a cópia guardada (A3-13: sinal fraco não segura a abertura).
+        const doCache = () => caches.open(VERSAO_CACHE).then(c => c.match(req));
+        const rede = fetch(req).then(resp => {
+            if (resp.ok || resp.type === 'opaque') { const copia = resp.clone(); caches.open(VERSAO_CACHE).then(c => c.put(req, copia)); }
+            return resp;
+        });
+        ev.respondWith(new Promise(resolve => {
+            let feito = false;
+            const usar = resp => { if (!feito && resp) { feito = true; resolve(resp); } };
+            const t = setTimeout(() => doCache().then(usar), 3000);
+            rede.then(resp => { clearTimeout(t); usar(resp); })
+                .catch(() => { clearTimeout(t); doCache().then(hit => { if (hit) usar(hit); else if (!feito) { feito = true; resolve(Response.error()); } }); });
+        }));
     }
 });

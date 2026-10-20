@@ -15,6 +15,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Núcleo de cálculo (puro) e interface -->
+    <script src="js/versao.js"></script>
     <script src="js/calc.js"></script>
     <script src="js/app.js" defer></script>
 </head>
@@ -25,7 +26,7 @@
         <div class="marca">
             <svg width="36" height="36" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0f4c5c"/><path d="M6 25 C10 12 16 9 26 8" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="11" cy="17" r="2.4" fill="#f2b450"/><circle cx="19" cy="11" r="2.4" fill="#f2b450"/></svg>
             <div>
-                <h1>Estimativa fck <span class="versao">v2.0</span></h1>
+                <h1>Estimativa fck <span class="versao" id="versaoTopo">v2.0</span></h1>
                 <div class="sub">Previsão da resistência do concreto a partir dos rompimentos de CPs</div>
             </div>
         </div>
@@ -227,7 +228,7 @@
 </main>
 
 <footer class="rodape">
-    Estimativa fck v2.0 · Desenvolvido por Leandro Hildinger Cavalcanti · Apoio à decisão: não substitui o controle por ensaio aos 28 dias.
+    Estimativa fck <span id="versaoRodape">v2.0</span> · Desenvolvido por Leandro Hildinger Cavalcanti · Apoio à decisão: não substitui o controle por ensaio aos 28 dias.
 </footer>
 
 <div class="toast" id="toast" role="status" hidden><span id="toastTexto"></span><button type="button" class="btn" id="toastDesfazer">Desfazer</button></div>

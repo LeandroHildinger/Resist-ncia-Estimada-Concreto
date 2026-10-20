@@ -9,7 +9,7 @@
     const C = window.EstimativaCalc;
     const $ = id => document.getElementById(id);
     const CHAVE = 'estimativaFck.v2';
-    const VERSAO = '2.0';
+    const VERSAO = self.ESTIMATIVA_VERSAO || '2.0';   // js/versao.js (A3-03)
 
     const PADRAO = { fck: '', sd: '', cementType: '0.25', customS: '0,25', analysisMode: 'adjusted', autoDrop: false, rows: [], idadePrev: '28', exemplo: false,
         ident: { obra: '', elemento: '', lote: '', laboratorio: '', responsavel: '' } };
@@ -55,7 +55,15 @@
             const o = JSON.parse(bruto);
             if (!o || typeof o !== 'object') return;
             const novo = clonar(PADRAO);
-            for (const k of Object.keys(PADRAO)) if (k in o) novo[k] = o[k];
+            // A3-10: cada chave só é aceita com o tipo e os valores esperados; senão fica o padrão.
+            const texto = v => typeof v === 'number' ? String(v).replace('.', ',') : (typeof v === 'string' ? v : null);
+            ['fck', 'sd', 'customS', 'idadePrev'].forEach(k => { const t = texto(o[k]); if (t !== null) novo[k] = t; });
+            if (['0.25', '0.38', '0.20', 'custom'].includes(String(o.cementType))) novo.cementType = String(o.cementType);
+            else if (Number(o.cementType) === 0.2) novo.cementType = '0.20';
+            if (['adjusted', 'normative'].includes(o.analysisMode)) novo.analysisMode = o.analysisMode;
+            if (typeof o.autoDrop === 'boolean') novo.autoDrop = o.autoDrop;
+            if (typeof o.exemplo === 'boolean') novo.exemplo = o.exemplo;
+            if (Array.isArray(o.rows)) novo.rows = o.rows;
             if (!Array.isArray(novo.rows)) novo.rows = [];
             novo.rows = novo.rows.filter(x => x && typeof x === 'object').map(x => ({ days: x.days, mpa: x.mpa }));
             const id = (o.ident && typeof o.ident === 'object') ? o.ident : {};
@@ -252,7 +260,7 @@
     }
     function listaIgnoradas(p) {
         if (!p.ignoradas.length) return '';
-        const itens = p.ignoradas.slice(0, 8).map(x => `<li>Linha ${x.linha}: ${esc(x.motivo)}</li>`).join('');
+        const itens = p.ignoradas.slice(0, 8).map(x => `<li>Linha ${x.linha} do arquivo: ${esc(x.motivo)}</li>`).join('');
         return `<ul>${itens}${p.ignoradas.length > 8 ? `<li>… e mais ${p.ignoradas.length - 8}</li>` : ''}</ul>`;
     }
 
@@ -380,7 +388,7 @@
         }
 
         // resumo fixo no celular
-        $('rfValor').textContent = `${f1(prev.estimada)} MPa aos ${fd(prev.t)} d`;
+        $('rfValor').textContent = `${f1(prev.estimada)} MPa aos ${fd(prev.t)} d${prev.extrapolacao ? ' (extrapolação)' : ''}`;
         $('rfSelo').className = 'selo selo-' + r.selo.codigo;
         $('rfSelo').textContent = r.selo.texto;
         $('rfBase').textContent = `confiança ${r.confianca.rotulo}`;
@@ -394,14 +402,16 @@
         if (m) return `O ensaio de ${m[1]} d ficou fora do esperado em relação ao de ${m[2]} d: razão ${m[3]} (esperado entre ${m[4]} e ${m[5]}).`.replace(/(\d)\.(\d)/g, '$1,$2');
         return html.replace(/<[^>]+>/g, '');
     }
+    // A3-08: na tela a numeração é a da lista de ensaios (a do CSV é "linha do arquivo").
+    function textoAviso(a) { return a.tipo === 'linha_invalida' ? a.texto.replace(/^Linha (\d+)/, 'Ensaio nº $1') : a.texto; }
     function renderAtencao() {
         const itens = [];
         if (r && r.ok) {
-            r.avisos.filter(a => a.tipo !== 'regra_referencia').forEach(a => itens.push(a.texto));
+            r.avisos.filter(a => a.tipo !== 'regra_referencia').forEach(a => itens.push(textoAviso(a)));
             r.avisosDados.forEach(a => itens.push(avisoAmigavel(a)));
             if (r.excluidos.length) itens.push(`Ignorado no ajuste (destoa do vizinho): ${r.excluidos.map(fd).join(', ')} d. Continua no gráfico e na lista.`);
         } else if (r) {
-            r.linhas.filter(l => l.status === 'invalida').forEach(l => itens.push(`Linha ${l.indice + 1} fora do cálculo: ${l.motivo}.`));
+            r.linhas.filter(l => l.status === 'invalida').forEach(l => itens.push(`Ensaio nº ${l.indice + 1} fora do cálculo: ${l.motivo}.`));
         }
         $('atencao').hidden = itens.length === 0;
         $('atContagem').textContent = itens.length ? `(${itens.length})` : '';
@@ -441,11 +451,11 @@
         $('detNotas').innerHTML = notas.map(t => `<p class="msg msg-info">${esc(t)}</p>`).join('');
 
         $('eqRef').innerHTML = eqHtml('cm,ref', a.fcm_base, p.s_normative, null);
-        $('eqEst').innerHTML = eqHtml('c,est', a.fcm, a.s, a.offset);
+        $('eqEst').innerHTML = eqHtml('proj', a.fcm, a.s, a.offset);
         $('eqTendBloco').hidden = !a.showPlausibleTrendCurve;
-        if (a.showPlausibleTrendCurve) $('eqTend').innerHTML = eqHtml('c,tend', a.plausibleTrendFcm, a.plausibleTrendS, a.plausibleTrendOffset);
+        if (a.showPlausibleTrendCurve) $('eqTend').innerHTML = eqHtml('tend', a.plausibleTrendFcm, a.plausibleTrendS, a.plausibleTrendOffset);
         $('eqLivreBloco').hidden = !a.showFreeTrendCurve;
-        if (a.showFreeTrendCurve) $('eqLivre').innerHTML = eqHtml('c,livre', a.freeTrendFcm, a.freeTrendS, a.freeTrendOffset);
+        if (a.showFreeTrendCurve) $('eqLivre').innerHTML = eqHtml('livre', a.freeTrendFcm, a.freeTrendS, a.freeTrendOffset);
     }
 
     // ------------------------------------------------------------------ gráfico (U-14, C-06, C-16, D3)
@@ -599,7 +609,8 @@
             const a = r.analise;
             ds[0].data = curva(a.fcm_base, r.params.s_normative, 0);
             anot.fck = { type: 'line', display: true, yMin: r.params.fck, yMax: r.params.fck, borderColor: cores.fck, borderWidth: 2, borderDash: [10, 5],
-                label: { enabled: true, content: `fck = ${fd(r.params.fck)} MPa`, position: 'start', backgroundColor: cores.aviso, color: cores.ink, font: { size: Math.round(12 * escala), weight: '600' } } };
+                drawTime: 'beforeDatasetsDraw',   // A3-02: ensaios desenhados por cima da linha e do rótulo
+                label: { enabled: true, content: `fck = ${fd(r.params.fck)} MPa`, position: 'end', backgroundColor: cores.aviso, color: cores.ink, font: { size: Math.round(12 * escala), weight: '600' } } };
             if (!temPontos()) {
                 msg = estado.rows.length ? 'Nenhum ensaio válido para estimar.' : 'Adicione os resultados dos CPs para estimar.';
             } else {
@@ -661,7 +672,7 @@
         const nivel = a.fcm >= a.fcm_base - 1e-9
             ? `os ensaios atingem ou superam o fcm alvo de dosagem (fck + 1,65·sd = ${f1(a.fcm_base)} MPa); por segurança, a projeção fica limitada a esse alvo`
             : `a curva média ajustada, aos 28 d (${f1(a.fcm)} MPa), está <b>abaixo</b> do fcm alvo de dosagem (fck + 1,65·sd = ${f1(a.fcm_base)} MPa)`;
-        const avisos = [...r.avisos.filter(x => x.tipo !== 'regra_referencia').map(x => x.texto), ...r.avisosDados.map(avisoAmigavel)];
+        const avisos = [...r.avisos.filter(x => x.tipo !== 'regra_referencia').map(textoAviso), ...r.avisosDados.map(avisoAmigavel)];
         if (r.excluidos.length) avisos.push(`Ignorado no ajuste: ${r.excluidos.map(fd).join(', ')} d.`);
         const v = r.validacao28;
 
@@ -691,7 +702,7 @@
         } else {
             h += `<h4>Recomendações</h4><ul>
                 <li>Manter o plano de controle tecnológico e os procedimentos de execução.</li>
-                <li>Confirmar com o ensaio de 28 d: a projeção é apoio à decisão e não substitui o controle por ensaio.</li>
+                <li>${r.real28 !== null ? 'Seguir o controle de aceitação do lote pela NBR 12655 (a projeção é apoio à decisão).' : 'Confirmar com o ensaio de 28 d: a projeção é apoio à decisão e não substitui o controle por ensaio.'}</li>
             </ul>`;
         }
         h += `<p class="res-base">Estimativa fck v${VERSAO} · curva β1 da NBR 6118 · projeção conservadora = curva média ajustada menos o maior desvio abaixo (não é o fck estatístico da NBR 12655).</p>`;
@@ -749,10 +760,10 @@
         const e = (fcm, s, desc) => `${fn(fcm, 2)} * exp[ ${fn(s, 3)} * (1 - raiz(28/t)) ]${desc === null ? '' : ` - ${fn(desc, 2)}`}`;
         const eq = [
             ['Curva esperada pela norma (NBR 6118)', `f_cm,ref(t) = ${e(a.fcm_base, p.s_normative, null)}`],
-            ['Curva de projeção conservadora', `f_c,est(t) = ${e(a.fcm, a.s, a.offset)}`]
+            ['Curva de projeção conservadora', `f_proj(t) = ${e(a.fcm, a.s, a.offset)}`]
         ];
-        if (a.showPlausibleTrendCurve) eq.push(['Tendência dos ensaios (dentro da faixa da norma)', `f_c,tend(t) = ${e(a.plausibleTrendFcm, a.plausibleTrendS, a.plausibleTrendOffset)}`]);
-        if (a.showFreeTrendCurve) eq.push(['Tendência dos ensaios (sem limite)', `f_c,livre(t) = ${e(a.freeTrendFcm, a.freeTrendS, a.freeTrendOffset)}`]);
+        if (a.showPlausibleTrendCurve) eq.push(['Tendência dos ensaios (dentro da faixa da norma)', `f_tend(t) = ${e(a.plausibleTrendFcm, a.plausibleTrendS, a.plausibleTrendOffset)}`]);
+        if (a.showFreeTrendCurve) eq.push(['Tendência dos ensaios (sem limite)', `f_livre(t) = ${e(a.freeTrendFcm, a.freeTrendS, a.freeTrendOffset)}`]);
         return eq;
     }
 
@@ -823,6 +834,16 @@
         cor('#17212b');
         y += altBox + 3;
 
+        // Gráfico logo depois do resultado (A3-15: aproveita a 1ª página)
+        const img = imagemGraficoPdf();
+        if (img) {
+            const hImg = L * 820 / 1500;
+            garantir(hImg + 10);
+            titulo('Gráfico');
+            doc.addImage(img, 'JPEG', M, y - 2, L, hImg);
+            y += hImg + 3;
+        }
+
         // Parâmetros
         titulo('Parâmetros');
         const nomeCim = p.cementType === 'custom' ? 's personalizado' : (NOMES_CIMENTO[p.cementType] || '');
@@ -839,7 +860,8 @@
         ], 58);
 
         // Tabela dos CPs
-        titulo(`Ensaios (${r.linhas.length} CP${r.linhas.length === 1 ? '' : 's'})`);
+        const nValidos = r.linhas.filter(l => l.status === 'ok').length;
+        titulo(`Ensaios (${r.linhas.length} linha${r.linhas.length === 1 ? '' : 's'}, ${nValidos} CP${nValidos === 1 ? '' : 's'} válido${nValidos === 1 ? '' : 's'})`);
         const cols = [M, M + 12, M + 34, M + 62];
         const cabTabela = () => { fonte(9, 'bold'); doc.setFillColor('#eef1f4'); doc.rect(M, y - 3.8, L, 5.6, 'F'); txt('Nº', cols[0] + 1, y); txt('Idade (d)', cols[1], y); txt('fc (MPa)', cols[2], y); txt('Status', cols[3], y); y += 5.6; };
         garantir(12); cabTabela();
@@ -862,21 +884,11 @@
         y += 3;
 
         // Avisos
-        const avisos = [...r.avisos.filter(x => x.tipo !== 'regra_referencia').map(x => x.texto), ...r.avisosDados.map(avisoAmigavel)];
+        const avisos = [...r.avisos.filter(x => x.tipo !== 'regra_referencia').map(textoAviso), ...r.avisosDados.map(avisoAmigavel)];
         if (r.excluidos.length) avisos.push(`Ignorado no ajuste: ${r.excluidos.map(fd).join(', ')} d.`);
         if (r.mensagens.regraReferencia) avisos.push(r.mensagens.regraReferencia);
         if (a.showPlausibleTrendCurve) avisos.push(`Os ensaios indicam potencial ${f1(a.tendencySuperiority)}% acima do previsto pela norma aos 28 d; por segurança, a projeção conservadora não usa esse ganho.`);
         if (avisos.length) { titulo('Atenção aos dados'); lista(avisos); }
-
-        // Gráfico
-        const img = imagemGraficoPdf();
-        if (img) {
-            const hImg = L * 820 / 1500;
-            garantir(hImg + 10);
-            titulo('Gráfico');
-            doc.addImage(img, 'JPEG', M, y - 2, L, hImg);
-            y += hImg + 3;
-        }
 
         // Equações (texto simples)
         titulo('Equações');
@@ -969,7 +981,7 @@
         const exemplo = () => {
             const antes = clonar(estado);
             aplicarEstado(EXEMPLO);
-            if (antes.rows.length) mostrarToast('Exemplo carregado (C45, CP V-ARI, 3/7/14 d).', () => aplicarEstado(antes));
+            if (JSON.stringify(antes) !== JSON.stringify(PADRAO)) mostrarToast('Exemplo carregado (C45, CP V-ARI, 3/7/14 d).', () => aplicarEstado(antes));
         };
         $('btnExemplo').addEventListener('click', exemplo);
         $('btnExemplo2').addEventListener('click', exemplo);
@@ -1007,6 +1019,8 @@
             document.body.insertAdjacentHTML('afterbegin', '<p class="msg msg-erro">Falha ao carregar js/calc.js.</p>');
             return;
         }
+        $('versaoTopo').textContent = 'v' + VERSAO;
+        $('versaoRodape').textContent = 'v' + VERSAO;
         carregar();
         preencherCampos();
         ligarCampos();

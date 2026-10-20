@@ -1,7 +1,7 @@
 # Mapa do app
 
 ## v2.0 (branch `modernizacao-2026-10`, M3)
-Arquivos: `index.html` (estrutura), `css/app.css` (estilo próprio, tokens claro/escuro, fonte do sistema; sem Tailwind e sem Google Fonts), `js/calc.js` (núcleo puro, `analyze`), `js/app.js` (interface: lê a tela, chama `analyze`, desenha), `manifest.webmanifest` + `icons/` + `sw.js` (PWA, M4). Bibliotecas ainda por CDN: Chart.js 3.9.1 + annotation 1.4.0 e jsPDF 2.5.1 (vendorizar no M4c, plano em `vendor/README.md`). KaTeX e html2canvas saíram no M4.
+Arquivos: `index.html` (estrutura), `css/app.css` (estilo próprio, tokens claro/escuro, fonte do sistema; sem Tailwind e sem Google Fonts), `js/calc.js` (núcleo puro, `analyze`), `js/app.js` (interface: lê a tela, chama `analyze`, desenha), `manifest.webmanifest` + `icons/` + `sw.js` (PWA, M4), `js/versao.js` (versão única: tela, PDF e nome do cache; **subir `ESTIMATIVA_PUBLICACAO` a cada publicação**). Bibliotecas ainda por CDN: Chart.js 3.9.1 + annotation 1.4.0 e jsPDF 2.5.1 (vendorizar no M4c, plano em `vendor/README.md`). KaTeX e html2canvas saíram no M4.
 
 | Bloco | Conteúdo |
 |---|---|
@@ -12,7 +12,7 @@ Arquivos: `index.html` (estrutura), `css/app.css` (estilo próprio, tokens claro
 | ③ Resultado | idade (padrão 28 d), "Resistência estimada conservadora", selo (Atende / Não atende / Indicativo, ou pelo ensaio de 28 d), confiança, base, aviso de extrapolação > 28 d, validação sem o ensaio de 28 d |
 | Gráfico | norma (cinza tracejada), projeção conservadora, tendências (só se existirem), ensaios; trecho > 28 d esmaecido e tracejado, faixa "extrapolação: fora do escopo da NBR 6118"; linha 28 d só com ensaio real |
 | Atenção aos dados | uma caixa com todos os avisos (linhas inválidas, agregação, sd padrão, razões, monotonia, ignorados) |
-| Detalhes técnicos | recolhido: s, fcm alvo, fcm ajustado, desconto, idades, tendências, equações KaTeX (f_cm,ref; f_c,est; f_c,tend; f_c,livre) |
+| Detalhes técnicos | recolhido: s, fcm alvo, fcm ajustado, desconto, idades, tendências, equações em HTML simples (f_cm,ref; f_proj; f_tend; f_livre) |
 | Identificação (opcional) | obra, elemento/peça, lote, laboratório, responsável; salvos e impressos no PDF |
 | Relatório / PDF | relatório em `<dialog>` (Esc, clique fora, foco). PDF (M4) em texto nativo do jsPDF: cabeçalho com data/hora local, identificação, resultado em destaque (selo, confiança, validação 28 d), parâmetros, tabela dos CPs com status (usado / agregado / excluído / inválido), avisos, gráfico (canvas fora da tela, paleta clara, JPEG), equações em texto Latin-1, interpretação, nota de método e limite, rodapé com página; nome `estimativa-fck-AAAA-MM-DD.pdf` (data local) |
 | Offline (PWA) | `sw.js`: arquivos locais com cache primeiro e atualização em segundo plano; CDN com rede primeiro e cópia de reserva; cache `estimativa-fck-v2.0`; registrado só em http/https |
@@ -44,17 +44,17 @@ Arquivo único `index.html` (1.286 linhas). Sem build. Dependências por CDN: Ta
 1. `fcm_base = fck + 1,65·sd` (sd padrão 4,0). Curva de referência = `fcm_base·β1(t, s_norm)`; s_norm: 0,25 CP I/II, 0,38 CP III/IV, 0,20 CP V, ou personalizado.
 2. Modo **ajustado** (≥2 pontos): ajuste "plausível" com s ∈ [s_norm−0,03, s_norm+0,03]; ajuste "livre" com s ∈ [0,05, 0,60].
    Modo **normativo** (ou 1 ponto): s = s_norm, só fcm ajustado.
-3. Curva característica: `fcm_final = min(fcm_plausível, fcm_base)`, `s_final = s_plausível`. Se a referência fica abaixo de todos os pontos e tem SSE menor, usa a referência (`ruleApplied`).
-4. `offset` = maior resíduo positivo (curva − ponto). Curva característica = curva média − offset (passa em/abaixo de todos os pontos).
+3. Curva de projeção conservadora (na v1, "característica"): `fcm_final = min(fcm_plausível, fcm_base)`, `s_final = s_plausível`. Se a referência fica abaixo de todos os pontos e tem SSE menor, usa a referência (`ruleApplied`).
+4. `offset` = maior resíduo positivo (curva − ponto). Curva de projeção conservadora = curva média − offset (passa em/abaixo de todos os pontos).
 5. Tendências plausível/livre só aparecem se o fcm ajustado > fcm_base, cada uma com seu offset.
-6. Previsão em idade t = curva característica(t); gráfico vai até 90 dias.
+6. Previsão em idade t = curva de projeção conservadora(t); gráfico vai até 90 dias.
 
 ## Observações
 - Não há persistência (recarregar perde tudo), não há dados de exemplo, não há PWA/offline.
 - `Manual.README.md` está desatualizado (cita `fck + 8`).
 
 ## Núcleo `js/calc.js` (M1/M2, branch `modernizacao-2026-10`)
-Arquivo UMD sem build: `window.EstimativaCalc` no navegador, `require('./js/calc.js')` no Node. O `index.html` ainda usa a cópia embutida até o M3.
+Arquivo UMD sem build: `window.EstimativaCalc` no navegador, `require('./js/calc.js')` no Node. Desde o M3 o `index.html` carrega `js/calc.js` e não tem cópia própria do núcleo (teste em `tests/ouro.test.js`).
 
 | Export | Papel |
 |---|---|
