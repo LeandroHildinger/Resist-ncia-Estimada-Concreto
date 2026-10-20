@@ -267,9 +267,11 @@ test('D2: com ensaio real de 28 d o selo vem do ensaio (mediana dos CPs)', () =>
     const r = analyze(base([{ days: 7, mpa: 30 }, { days: 28, mpa: 44 }, { days: 28, mpa: 47 }]));
     assert.equal(r.real28, 45.5);
     assert.equal(r.selo.base, 'ensaio28');
-    assert.equal(r.selo.texto, 'Atende pelo ensaio de 28 d');
+    assert.equal(r.selo.texto, 'Ensaio de 28 d acima do fck');   // M4.2 (A3-04)
+    assert.equal(r.selo.motivo, 'Mediana de 2 CPs aos 28 d: 45,5 MPa (fck = 45,0 MPa). Não é a aceitação do lote: a aceitação segue a NBR 12655.');
     const n = analyze(base([{ days: 7, mpa: 30 }, { days: 28, mpa: 40 }]));
-    assert.equal(n.selo.texto, 'Não atende pelo ensaio de 28 d');
+    assert.equal(n.selo.texto, 'Ensaio de 28 d abaixo do fck');
+    assert.match(n.selo.motivo, /^Mediana de 1 CP aos 28 d: 40,0 MPa/);
 });
 
 // ---------------------------------------------------------------------------

@@ -409,7 +409,7 @@
     }
 
     // D2: selo Atende / Não atende / Indicativo.
-    function avaliarSelo(fck, estimada28, real28, confianca) {
+    function avaliarSelo(fck, estimada28, real28, confianca, n28) {
         if (real28 === null && confianca.idades.length === 0) {   // A2-02
             return { codigo: 'sem_dados', base: 'sem_dados', texto: 'Sem ensaios',
                 motivo: 'Adicione ensaios para estimar; a curva exibida é só a referência da norma.' };
@@ -417,8 +417,9 @@
         if (real28 !== null) {
             const atende = real28 >= fck;
             return { codigo: atende ? 'atende' : 'nao_atende', base: 'ensaio28',
-                texto: atende ? 'Atende pelo ensaio de 28 d' : 'Não atende pelo ensaio de 28 d',
-                motivo: `Ensaio de 28 d: ${fmt(real28, 1)} MPa contra fck = ${fmt(fck, 1)} MPa.` };
+                // M4.2 (A3-04, decisão do Leandro): o ensaio de 28 d não é a aceitação do lote.
+                texto: atende ? 'Ensaio de 28 d acima do fck' : 'Ensaio de 28 d abaixo do fck',
+                motivo: `Mediana de ${n28} CP${n28 === 1 ? '' : 's'} aos 28 d: ${fmt(real28, 1)} MPa (fck = ${fmt(fck, 1)} MPa). Não é a aceitação do lote: a aceitação segue a NBR 12655.` };
         }
         if (confianca.nivel === 'baixa') {
             return { codigo: 'indicativo', base: 'indicativo', texto: 'Indicativo',
@@ -503,7 +504,7 @@
             analise, previsoes, previsaoIdade,
             estimada28, atendeEstimada28: (Calculator.calculateResistance(analise.fcm, analise.s, 28) - analise.offset) >= params.fck,
             real28, comparacaoS: compararS(analise.s, params.s_normative),
-            confianca, selo: avaliarSelo(params.fck, estimada28, real28, confianca),
+            confianca, selo: avaliarSelo(params.fck, estimada28, real28, confianca, p28 ? p28.n : 0),
             validacao28: validar28(pontos, params, real28),
             mensagens: { regraReferencia: analise.ruleApplied ? MSG_REGRA_REFERENCIA : null }
         };

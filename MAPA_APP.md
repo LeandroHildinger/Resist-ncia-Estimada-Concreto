@@ -9,7 +9,7 @@ Arquivos: `index.html` (estrutura), `css/app.css` (estilo próprio, tokens claro
 | Resumo fixo (celular < 960 px) | valor + selo + confiança, some sem resultado válido |
 | ① Concreto | fck, cimento, s personalizado (se "Outro"); Opções avançadas recolhidas: sd, modo, ignorar ensaio que destoa |
 | ② Ensaios | formulário Idade + Resistência (só adiciona valores válidos), lista editável com remover + Desfazer 5 s, linhas inválidas marcadas, Importar CSV com resumo lidas/ignoradas, modelo .csv |
-| ③ Resultado | idade (padrão 28 d), "Resistência estimada conservadora", selo (Atende / Não atende / Indicativo, ou pelo ensaio de 28 d), confiança, base, aviso de extrapolação > 28 d, validação sem o ensaio de 28 d |
+| ③ Resultado | idade (padrão 28 d), "Resistência estimada conservadora", selo (Atende / Não atende / Indicativo; com ensaio real, "Ensaio de 28 d acima/abaixo do fck", que não é a aceitação do lote), confiança, base, aviso de extrapolação > 28 d, validação sem o ensaio de 28 d |
 | Gráfico | norma (cinza tracejada), projeção conservadora, tendências (só se existirem), ensaios; trecho > 28 d esmaecido e tracejado, faixa "extrapolação: fora do escopo da NBR 6118"; linha 28 d só com ensaio real |
 | Atenção aos dados | uma caixa com todos os avisos (linhas inválidas, agregação, sd padrão, razões, monotonia, ignorados) |
 | Detalhes técnicos | recolhido: s, fcm alvo, fcm ajustado, desconto, idades, tendências, equações em HTML simples (f_cm,ref; f_proj; f_tend; f_livre) |

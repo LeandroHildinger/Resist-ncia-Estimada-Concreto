@@ -19,6 +19,8 @@ Modernização completa, baseada na auditoria técnica, de código e de usabilid
 - **D3:** idades acima de 28 dias são permitidas com aviso: trecho esmaecido e tracejado e etiqueta "extrapolação: fora do escopo da NBR 6118".
 - **D4:** validação honesta: a previsão de 28 dias é recalculada sem o ensaio de 28 d (nem posteriores) e comparada ao valor real. Antes, o ensaio de 28 d entrava no ajuste que o validava.
 
+- **A3-04 (20/10/2026):** com ensaio real de 28 d, o selo diz "Ensaio de 28 d acima do fck" / "abaixo do fck" (mediana dos CPs) e avisa que não é a aceitação do lote, que segue a NBR 12655.
+
 ### Interface
 - Telas reorganizadas em 3 passos (Concreto, Ensaios, Resultado), pensadas primeiro para o celular, com resumo fixo no topo em telas estreitas.
 - Cartão de resultado com valor, selo e confiança; opções avançadas recolhidas; ajuda tocável (sem depender de hover); botão "Carregar exemplo"; "Novo lote" com desfazer.

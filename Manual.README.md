@@ -27,7 +27,7 @@ A tela segue a ordem dos passos. O botão "Carregar exemplo" preenche um caso co
 **Resistência estimada conservadora.** É o valor da curva de projeção conservadora na idade escolhida. Não é o fck característico (quantil de 5%) da NBR 12655: é uma projeção a favor da segurança, construída para não passar acima de nenhum ensaio já medido (seção 6).
 
 **Selo.**
-- **Atende pelo ensaio de 28 d / Não atende pelo ensaio de 28 d:** existe ensaio real aos 28 dias e ele é comparado ao fck. O ensaio real vale mais que a estimativa.
+- **Ensaio de 28 d acima do fck / Ensaio de 28 d abaixo do fck:** existe ensaio real aos 28 dias; a mediana dos CPs dessa idade é comparada ao fck. O ensaio real vale mais que a estimativa, mas isso não é a aceitação do lote: a aceitação segue a NBR 12655.
 - **Atende / Não atende:** sem ensaio de 28 dias, usa-se a resistência estimada conservadora aos 28 dias contra o fck, quando a confiança é média ou boa.
 - **Indicativo:** a confiança é baixa (veja abaixo). O valor é só um sinal, sem veredito.
 - **Sem ensaios:** nada foi lançado; a curva exibida é apenas a referência da norma.
